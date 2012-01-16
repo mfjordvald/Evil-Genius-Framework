@@ -15,21 +15,29 @@ class Config
 	 * When set to false any path that only match the root index.php controller will result in a 404.
 	 * When set to true the request will instead be passed to the root index.php
 	 * controller, provided that it exists.
+	 *
+	 * @var bool
 	 */
 	public $user404     = false;
 
 	/**
 	 * True will result in core errors being output.
+	 *
+	 * @var bool
 	 */
 	public $development = true;
 
 	/**
 	 * The controller loader to use, currently CacheController and ProfileController exist.
+	 *
+	 * @var string
 	 */
 	public $loader      = 'Evil\Core\CacheController';
 
 	/**
 	 * Will use the route cache file to find correct controller, rather than traverse the file system.
+	 *
+	 * @var bool
 	 */
 	public $cache_route = false;
 
