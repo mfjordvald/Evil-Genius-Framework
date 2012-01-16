@@ -11,34 +11,63 @@ namespace Evil\Core;
  */
 class CacheController extends Controller
 {
-	private $class;
-	private $arguments;
-	private $libraries;
+	/**
+	 * Holds the name of the controller class.
+	 *
+	 * @var string
+	 */
+	protected $class;
 
 	/**
-	 * Controller::__construct()
+	 * Holds a string representation of the arguments.
 	 *
-	 * @param string $module Module the class belongs to.
-	 * @param string $class Class to instantialize.
+	 * @var string
+	 */
+	protected $arguments;
+
+	/**
+	 * An array of page-level cached libraries.
+	 *
+	 * @var array
+	 */
+	protected $libraries = array();
+
+	/**
+	 * CacheController::__construct()
+	 *
+	 * @param Config      $config      Object holding the configuration variables.
+	 * @param Application $application The bootstrapper class holding a few auto load methods.
+	 * @return void
+	 */
+	public function __construct($config, $application = null)
+	{
+		if ( !is_null($application) )
+			spl_autoload_unregister(array($application, 'autoLoadCore'));
+
+		spl_autoload_register(array($this, 'autoLoadClasses'));
+
+		if ( !is_null($application) )
+			spl_autoload_register(array($application, 'autoLoadError'));
+
+		$this->config = $config;
+	}
+
+	/**
+	 * CacheController::load()
+	 *
+	 * @param string    $class     Class to instantialize.
 	 * @param Arguments $arguments Arguments object.
 	 * @return void
 	 */
-	public function __construct($class, Arguments $arguments, $initialize = null)
+	public function load($class, Arguments $arguments)
 	{
-		include 'cachetracker.php';
+		// Included before controller so that it's available to the application.
+		require 'cachetracker.php';
 
-		if ( !is_null($initialize) )
-			spl_autoload_unregister(array($initialize, 'autoLoadCore'));
+		$this->cache_tracker = new CacheTracker($this->config);
+		$arguments->set('CacheTracker', $this->cache_tracker);
 
-		spl_autoload_register(array($this, 'autoLoadLibrary'));
-		spl_autoload_register(array($this, 'autoLoadController'));
-
-		if ( !is_null($initialize) )
-			spl_autoload_register(array($initialize, 'autoLoadError'));
-
-		unset($initialize);
-
-		// Convert dashes in class name to underscores.
+		// Dashes in URI map to underscores in class and file name.
 		$class = ltrim(str_replace(array('-', '//'), array('_', '/'), $class), '/');
 
 		$this->class     = strtolower($class);
@@ -46,37 +75,42 @@ class CacheController extends Controller
 
 		$class = 'Evil\Controller\\' . str_replace('/', '\\', $class);
 
-		include 'system/controllers/' . $this->class . '.php';
+		require 'system/controllers/' . $this->class . '.php';
 
 		ob_start();
 		new $class($this, $arguments);
 		$data = ob_get_clean();
-
-		CacheTracker::storePage($data);
-
 		echo $data;
+
+		$this->cache_tracker->storePage($data);
 	}
 
 	/**
-	 * Controller::loadLibrary()
-	 * Factory for libraries. Forces lazy loading.
+	 * CacheController::loadLibrary()
+	 * Factory for libraries. Uses an optional registry for caching libraries.
 	 *
-	 * @param string|array $library string or an array of names of libraries to load.
-	 * @param mixed $arguments Arguments to pass to the library.
-	 * @param string $identifier The identifier for the library.
-	 * @param bool $cache Whether to cache the library in the registry or not.
+	 * @param string|array $library    Names of libraries to load.
+	 * @param mixed        $arguments  Arguments to pass to the library.
+	 * @param string       $identifier The identifier for the library.
+	 * @param bool         $cache      Whether to cache the library in the registry or not.
 	 * @return Object Object of the specified library.
 	 */
-	public function loadLibrary($library, $arguments = null, $identifier = '', $cache = true)
+	public function loadLibrary($library, $arguments = null, $identifier = null, $cache = true)
 	{
-		//BUG: Will error if sent a library chain without an identifier
-		$identifier = empty($identifier) ? strtolower($library) : strtolower($identifier);
+		if ( empty($identifier) )
+			$identifier = is_array($library) ? implode('-', $library) : $library;
 
+		$identifier = strtolower($identifier);
+
+		// Simple request-life library caching.
 		if ( isset($this->libraries[$identifier]) )
 			return $this->libraries[$identifier];
 
 		if ( !is_array($library) )
 			$library = array($library);
+
+		if ( !isset($arguments['CacheTracker']) )
+			$arguments['CacheTracker'] = $this->cache_tracker;
 
 		$path = 'system/libraries/';
 
@@ -86,14 +120,14 @@ class CacheController extends Controller
 
 			if ( file_exists($path . $lib . '.php') )
 			{
-				if ( !class_exists('Evil\Library\\' . $lib, false) )
-					include $path . $lib . '.php';
+				// Prevents double inclusion when loading multiple instances of same library.
+				if ( !class_exists('Evil\Library\\' . str_replace('/', '\\', $lib), false) )
+					require $path . $lib . '.php';
 
 				$lib = 'Evil\Library\\' . str_replace('/', '\\', $lib);
-
 				$library = new $lib($this, new Arguments($arguments));
 
-				if ($cache && !empty($identifier) )
+				if ($cache)
 					$this->libraries[$identifier] = $library;
 
 				return $library;
@@ -104,11 +138,10 @@ class CacheController extends Controller
 	}
 
 	/**
-	 * Controller::loadInclude()
+	 * CacheController::loadInclude()
 	 * Returns path to specified file from the include directory.
 	 *
 	 * @param string $include Name of file to include.
-	 * @example include $controller->loadInclude('Common');
 	 * @return void
 	 */
 	public function loadInclude($include)
@@ -117,112 +150,76 @@ class CacheController extends Controller
 	}
 
 	/**
-	 * Initialize::autoLoadLibrary()
-	 * Auto load undefined library classes.
+	 * CacheController::autoLoadClasses()
+	 * Auto load undefined classes.
 	 *
 	 * @param string $class Name of class to load.
 	 * @return void
 	 */
-	public function autoLoadLibrary($class)
+	public function autoLoadClasses($class)
 	{
+		// Only work on our namespace.
 		if (substr($class,0, 4) !== 'Evil')
 			return;
 
 		$namespace = explode('\\', $class);
 
-		// First element is empty on windows, not on Linux...
+		// First element is empty on Windows, not on Linux...
 		if ( empty($namespace[0]) )
 			array_shift($namespace);
 
-		$class     = strtolower(array_pop($namespace));
-		$namespace = strtolower(implode('/', array_slice($namespace, 2)));
+		$class     = strtolower(array_pop($namespace)); // Class name is alwaysthe last element.
+		$namespace = strtolower(implode('/', array_slice($namespace, 2))); // First two elements aren't used for path.
 
 		if ( !empty($namespace) )
 			$namespace .= '/';
 
-		$path = 'system/libraries/' . $namespace;
+		$libraries_path   = 'system/libraries/' . $namespace;
+		$controllers_path = 'system/controllers/' . $namespace;
 
-		if ( file_exists($path . strtolower($class) . '.php') )
-			include $path . strtolower($class) . '.php';
+		if ( file_exists($libraries_path . $class . '.php') )
+			include $libraries_path . $class . '.php';
+		elseif ( file_exists($controllers_path . $class . '.php') )
+			include $controllers_path . $class . '.php';
 	}
 
 	/**
-	 * Initialize::autoLoadController()
-	 * Auto load undefined controller classes.
-	 *
-	 * @param string $class Name of class to load.
-	 * @return void
-	 */
-	public function autoLoadController($class)
-	{
-		if (substr($class,0, 4) !== 'Evil')
-			return;
-
-		$namespace = explode('\\', $class);
-
-		// First element is empty on windows, not on Linux...
-		if ( empty($namespace[0]) )
-			array_shift($namespace);
-
-		$class     = strtolower(array_pop($namespace));
-		$namespace = strtolower(implode('/', array_slice($namespace, 2)));
-
-		if ( !empty($namespace) )
-			$namespace .= '/';
-
-		$path = 'system/controllers/' . $namespace;
-
-		if ( file_exists($path . strtolower($class) . '.php') )
-			include $path . strtolower($class) . '.php';
-	}
-
-	/**
-	 * Controller::redirect()
+	 * CacheController::redirect()
 	 * Redirect to the same file keeping only $number amount of arguments.
 	 *
+	 * @todo Method should find the absolute URL and construct header properly.
 	 * @param integer $number Number of arguments to include in the redirect.
 	 * @return void
 	 */
 	public function redirect($number)
 	{
-		// Get a slice of the first $number arguments.
 		$arguments = $this->arguments->slice(0, $number);
 
-		// Clean the class name, we don't want Index showing since it's found by default.
+		// Class name might be something we don't want to show in the URL.
 		$class = str_replace('Index', '', $this->class);
 
 		if ( !headers_sent() )
 		{
-			//header('HTTP/1.1 301 Moved Permanently');
+			header('HTTP/1.1 301 Moved Permanently');
 
-			if (count($arguments) == 0)
+			if ( empty($arguments) )
 				header('Location: /' . $class . '/' . implode('/', $arguments));
 			else
 				header('Location: /' . $class . '/' . implode('/', $arguments) . '/');
 		}
 
-		// In case headers have already been sent.
 		die('Should have redirected to /' . $class . '/' . implode('/', $arguments) );
 	}
 
 	/**
-	 * Controller::libraryExists()
+	 * CacheController::libraryExists()
 	 * Checks whether or not the specified library is present in the libraries dir.
 	 *
 	 * @param string Name of the library to check exists.
 	 * @return bool True if specified library exists, false otherwise
 	 */
-	public function libraryExists($library)
+	public function libraryExists($lib)
 	{
-		$path = 'system/libraries/';
-		$lib = strtolower($library);
-		if ( file_exists($path . $lib . '.php') )
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
+		return file_exists('system/libraries/' . strtolower($lib) . '.php');
 	}
 }

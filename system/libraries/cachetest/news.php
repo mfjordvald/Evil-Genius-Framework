@@ -1,6 +1,5 @@
 <?php
 namespace Evil\Library\CacheTest;
-use \Evil\Core\CacheTracker;
 
 /**
  * News
@@ -21,9 +20,16 @@ class News implements \Evil\Core\LibraryCacheable // Implements the optional int
 	 */
 	public function __construct($controller, $arguments)
 	{
-		// The database library object was passed in.
-		// Alternatively we could have used $controller->loadLibrary('Database');
-		$this->sql = $arguments->get(0);
+		if ($arguments->get('Database') instanceof \Evil\Library\SQL\SQL)
+			$this->sql = $arguments->get('Database');
+		elseif ($arguments->get(0) instanceof \Evil\Library\SQL\SQL)
+			$this->sql = $arguments->get(0);
+		else
+			$this->sql = $controller->loadLibrary('Database');
+
+		$this->cache_tracker = $arguments->get('CacheTracker');
+		if ( !($this->cache_tracker instanceof \Evil\Core\CacheTracker) )
+			throw new \Exception('CacheTracker was not available in News library.');
 	}
 
 	/**
@@ -103,7 +109,7 @@ class News implements \Evil\Core\LibraryCacheable // Implements the optional int
 
 		$this->sql->execute($statement);
 
-		CacheTracker::triggerDataKeyInvalidation(array('news' => null));
+		$this->cache_tracker->triggerDataKeyInvalidation(array('news' => null));
 	}
 
 	/**
@@ -126,7 +132,7 @@ class News implements \Evil\Core\LibraryCacheable // Implements the optional int
 
 		$this->sql->execute($statement);
 
-		CacheTracker::triggerDataKeyInvalidation(array('comment' => $news_id));
+		$this->cache_tracker->triggerDataKeyInvalidation(array('comment' => $news_id));
 	}
 
 	/**

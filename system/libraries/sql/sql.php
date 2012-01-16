@@ -142,8 +142,6 @@ class SQLException extends \Exception
 {
 	public function __construct ($message = '', $code = 0)
 	{
-		//TODO: Log this, but not in the database.
-
 		parent::__construct($message, $code);
 	}
 }

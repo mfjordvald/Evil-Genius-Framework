@@ -1,7 +1,9 @@
 <?php
 include $controller->loadInclude('Config');
-\Evil\Core\CacheTracker::setNamespace($cache_namespace);
-\Evil\Core\CacheTracker::setServer($cache_server_ip, $cache_server_port);
+
+$this->cache_tracker = $arguments->get('CacheTracker');
+$this->cache_tracker->setNamespace($cache_namespace);
+$this->cache_tracker->setServer($cache_server_ip, $cache_server_port);
 
 $this->template = $controller->loadLibrary('Template', 'CacheTest');
 
@@ -26,5 +28,3 @@ catch (SQLException $e) {
 	else
 		die('The database server is currently unavailable, please try again in a minute or two.');
 }
-
-$this->controller = $controller;

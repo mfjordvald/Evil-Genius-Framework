@@ -20,7 +20,11 @@ class Template
 	 */
 	public function __construct($controller, $arguments)
 	{
-		$template = $arguments->get(0);
+		$template = $arguments->get(array('Template', 0));
+
+		if ( empty($template) || !is_string($template) )
+			$template = 'default';
+
 		$this->setTemplate($template);
 	}
 
@@ -33,7 +37,7 @@ class Template
 	 */
 	public function addHook($function)
 	{
-		$this->hooks[] = $function;
+		$this->_hooks[] = $function;
 	}
 
 	/**
@@ -61,30 +65,30 @@ class Template
 
 	/**
 	 * Template::display()
-	 * Display the template using a output buffer.
+	 * Display the template using an output buffer.
 	 *
 	 * @param string $_tpl The template file to display.
-	 * @return void
+	 * @param bool $_return Whether to echo or return to output buffer.
+	 * @return void|string
 	 */
 	public function display($_tpl, $_return = false)
 	{
-		if ( !empty($this->hooks) )
+		if ( !empty($this->_hooks) )
 		{
-			foreach($this->hooks as $hook)
-				$hook($this);
+			foreach($this->_hooks as $_hook)
+			{
+				$_hook($this);
+			}
 		}
 
 		ob_start();
 
 		include $this->template_path . strtolower($_tpl) . '.tpl.php';
-		$_output = ob_get_contents();
-
-		ob_end_clean();
 
 		if ($_return)
-			return $_output;
+			return ob_get_flush();
 		else
-			echo $_output;
+			ob_end_flush();
 	}
 
 	/**
@@ -92,19 +96,12 @@ class Template
 	 * Fetches the argument with index $var or null.
 	 *
 	 * @param  string $var Index to return.
-	 * @return mixed|string Variable if found, otherwise "UNINITIALIZED VARIABLE!".
+	 * @return mixed
 	 */
 	public function __get($var)
 	{
-		if ( isset($this->$var) )
-		{
-			return $this->$var;
-		}
-		else
-		{
-			//TODO: Log it.
-			return 'UNINITIALIZED VARIABLE!';
-		}
+		// Will error if not set. This is desirable for logging purposes.
+		return $this->$var;
 	}
 
 	/**
@@ -118,9 +115,9 @@ class Template
 	 */
 	public function setMeta($title, $description = '', $keywords = '')
 	{
-		$this->title       = $title;
-		$this->description = $description;
-		$this->keywords    = $keywords;
+		$this->meta_title       = $title;
+		$this->meta_description = $description;
+		$this->meta_keywords    = $keywords;
 	}
 
 	/**
@@ -158,7 +155,6 @@ class TemplateException extends \Exception
 	 */
 	public function __construct ($message = '', $code = 0)
 	{
-		//Todo: Log this.
 		parent::__construct($message, $code);
 	}
 }

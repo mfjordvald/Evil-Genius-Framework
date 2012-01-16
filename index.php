@@ -2,162 +2,99 @@
 namespace Evil\Core;
 
 /**
- * Bootstrapper
+ * Application
+ * A bootstrapper class.
  *
  * @package Evil Genius Framework
  * @author Martin Fjordvald
  * @copyright Evil Genius Media
  */
-class Initialize
+class Application
 {
 	/**
-	 * When set to false any path that only match the root index.php controller
-	 * will result in a 404.
-	 * When set to true the request will instead be passed to the root index.php
-	 * controller, provided that it exists.
-	 */
-	private $user404     = false;
-
-	/**
-	 * The controller loader to use, currently only CacheController exists.
-	 */
-	private $loader      = 'Evil\Core\CacheController';
-
-	/**
-	 * True will result in core errors being output.
-	 */
-	private $development = true;
-
-	/**
-	 * Initialize::__construct()
-	 * Configure our framework environment.
+	 * Application::__construct()
+	 * Setup the class.
+	 *
+	 * @param Config $config Object holding the configuration variables.
 	 * @return void
 	 */
-	public function __construct()
+	public function __construct($config)
 	{
 		header('Content-Type: text/html; charset=utf-8');
 
 		set_exception_handler(array($this, 'handleException'));
 		spl_autoload_register(array($this, 'autoLoadCore'));
 
-		// Figure out what todo.
-		$route = $this->findRoute();
-		$this->findController($route);
+		define('DS', DIRECTORY_SEPARATOR);
+
+		$this->config = $config;
 	}
 
 	/**
-	 * Initialize::findRoute()
-	 * Analyse the URI and figure out the route to load.
-	 * @return array Route to load.
+	 * Application::initialize()
+	 * Configure and start our application.
+	 *
+	 * @return void
 	 */
-	protected function findRoute()
+	public function initialize()
 	{
-		if ( !empty($_SERVER['REQUEST_URI']) )
+		$route = $this->getRoute();
+		$route = $this->cleanRoute($route);
+
+		$router = new Router($route, $this->config->user404, $this->config->cache_route);
+		$class  = $router->getController();
+
+		$controller = new $this->config->loader($this->config, $this);
+		$controller->load($class[0], $class[1]);
+	}
+
+	/**
+	 * Application::getRoute()
+	 * Analyse the URI and figure out the route to load.
+	 *
+	 * @return string Route to load.
+	 */
+	protected function getRoute()
+	{
+		if ( !empty($_SERVER['REQUEST_URI']) ) // Web request.
 		{
-			// Web request.
 			$route = $_SERVER['REQUEST_URI'];
 		}
-		else
+		else // CLI request.
 		{
-			// CLI request.
 			$root = dirname(array_shift($_SERVER['argv']));
 			chdir($root);
 			$route = '/' . implode('/', $_SERVER['argv']) . '/';
 		}
 
-		// Make sure they don't want us to display anything system specific.
+		return $route;
+	}
+
+	/**
+	 * Application::cleanRoute()
+	 * Clean the route of unwanted elements.
+	 *
+	 * @param string $route The route to clean.
+	 * @return string Cleaned route to load.
+	 */
+	protected function cleanRoute($route)
+	{
 		if (substr($route, 0, 7) === '/system')
-			die('denied');
+			throw new CoreException('System dir access forbidden.');
 
-		// Or anything OS specific.
-		if (stripos($route, '../') !== false)
-			die('denied');
+		if (stripos($route, '/../') !== false)
+			throw new CoreException('Upper directory travesal not allowed.');
 
-		// Remove a few unwanted things.
 		$route = str_replace('/index.php', '', $route);
 		$route = trim($route, '/');
 		$route = preg_replace('/[\\:*<>|"]/', '', $route); // Invalid URL characters.
-		$route = preg_replace('#/\?.+$#', '', $route); // Remove any query path.
-		$route = explode('/', $route);
+		$route = preg_replace('#/\?.+$#', '', $route);     // Remove any query path.
 
 		return $route;
 	}
 
 	/**
-	 * Initialize::loadController()
-	 * Load appropiate controller, start at the deepest level and ascend the file
-	 * structure until a fitting controller is found, otherwise 404.
-	 * This method looks for files in the following order:
-	 * - The full path with .php appended.
-	 * - The full path with /index.php appended.
-	 * - A part of the path is popped and process restarted.
-	 * @return Controller|bool The chosen Controller or false.
-	 */
-	protected function findController($route)
-	{
-		if ( empty($route) )
-		{
-			header('HTTP/1.1 404 Not Found');
-			return false;
-		}
-
-		// Store the route for arguments.
-		$arguments = $route;
-
-		// Deepest point to top point is the reverse route.
-		$reverse = array_reverse($route, true);
-
-		foreach($reverse as $key => $part)
-		{
-			$path = implode('/', $route);
-
-			// Since $key is from the reverse route and we pop elements this will remove
-			// the elements we have already tried, thus finding the new file to look for.
-			list($file) = array_slice($route, $key);
-
-			// If a file part is found then remove that from our path.
-			$path = !empty($file) ? str_replace($file, '', $path): '';
-
-			$path = strtolower($path);
-			$file = str_replace('-', '_', strtolower($file));
-
-			if (file_exists('system/controllers/' . $path .  $file . '.php'))
-				return $this->loadController($path . $file, new Arguments( array_slice($arguments, $key + 1) ), $this);
-			elseif (file_exists('system/controllers/' . $path . $file . '/index.php'))
-				return $this->loadController($path . $file . '/Index', new Arguments( array_slice($arguments, $key + 1) ), $this);
-
-			// Pop the element that did not resolve in a file.
-			array_pop($route);
-		}
-
-		// Index.php in root, last resort.
-		// Empty route because otherwise we'd never have a 404, possibly leave 404'ing up to the end-user?
-		if (!$this->user404 && empty($arguments) && file_exists('system/controllers/index.php') )
-			return $this->loadController('Index', new Arguments($arguments), $this);
-		else if ($this->user404 && file_exists('system/controllers/index.php') )
-			return $this->loadController('Index', new Arguments($arguments), $this);
-		else
-		{
-			header('HTTP/1.1 404 Not Found');
-			echo '404 Controller Not Found';
-		}
-
-		return false;
-	}
-
-	/**
-	 * Initialize::loadController()
-	 * Loads the specified controller.
-	 * @param string $route The route that resulted in a 404.
-	 * @return Controller The chosen Controller.
-	 */
-	protected function loadController($path, $file, $arguments)
-	{
-		return new $this->loader($path, $file, $arguments, $this);
-	}
-
-	/**
-	 * Initialize::handleException()
+	 * Application::handleException()
 	 * Logs uncaught exceptions and echo an error. Does not stop script execution.
 	 * @param Exception $exception Native Exception object.
 	 * @return void
@@ -165,16 +102,16 @@ class Initialize
 	public function handleException($exception)
 	{
 		$this->writeLog($exception->getMessage(), $exception->getFile(), $exception->getLine());
-		echo '<h1>An exception went uncaught! Check the log for further details.</h1>';
+		echo '<h1>An exceptional error occured, this has been logged and will be fixed soon, sorry for the inconvenience.</h1>';
 
 		if ($this->development)
 			echo $exception->getMessage();
 	}
 
 	/**
-	 * Initialize::autoLoadCore()
+	 * Application::autoLoadCore()
 	 * Auto load undefined core classes.
-	 * Die if class isn't found.
+	 *
 	 * @param string $class Name of class to load.
 	 * @return void
 	 */
@@ -188,22 +125,24 @@ class Initialize
 	}
 
 	/**
-	 * Initialize::autoLoadError()
+	 * Application::autoLoadError()
 	 * Last method in the autoload stack. Logs and dies with an error.
+	 *
 	 * @param string $class Name of class to load.
 	 * @return void
 	 */
 	public function autoLoadError($class)
 	{
+		// Only work on our namespace.
 		if (substr($class,0, 4) !== 'Evil')
 			return;
 
-		$this->writeLog('Failed to load required class ' . $class, $_SERVER['REQUEST_URI'], 0);
+		$this->writeLog('Failed to load required class ' . $class, $this->cleanRoute($this->getRoute()), 0);
 		die('Failed to load required class ' . $class);
 	}
 
     /**
-     * Initialize::writeLog()
+     * Application::writeLog()
      *
      * @param string $message Message text to log.
      * @param string $file File that triggered the log event.
@@ -219,8 +158,9 @@ class Initialize
 
 /**
  * CoreException
- *
  * Exception class for Core framework
+ *
+ * @package Evil Genius Framework
  * @author Martin Fjordvald
  * @copyright Evil Genius Media
  */
@@ -232,5 +172,8 @@ class CoreException extends \Exception
 	}
 }
 
-// Start the whole thing.
-new Initialize();
+require 'config.php';
+$config = new Config();
+
+$application = new Application($config);
+$application->initialize($config);

@@ -23,7 +23,7 @@ class News implements \Evil\Core\ControllerCacheable
 	{
 		include $controller->loadInclude('Common');
 
-		$this->news = $controller->loadLibrary('CacheTest/News', $this->sql);
+		$this->news = $controller->loadLibrary('CacheTest/News', array('Database' => $this->sql));
 
 		if ( !empty($_POST) )
 		{
@@ -50,7 +50,6 @@ class News implements \Evil\Core\ControllerCacheable
 	public function getAllNews()
 	{
 		$this->template->news = $this->news->getNews();
-
 		$this->template->display('News');
 	}
 
@@ -94,7 +93,7 @@ class News implements \Evil\Core\ControllerCacheable
 			return false;
 
 		$this->news->postNews($data['title'], $data['content']);
-		$this->controller->loadLibrary('Header')->redirect('/news/');
+		header('Location: /news/');
 	}
 
 	/**
@@ -109,14 +108,14 @@ class News implements \Evil\Core\ControllerCacheable
 			return false;
 
 		$this->news->postComment($data['id'], $data['content']);
-		$this->controller->loadLibrary('Header')->redirect('/news/' . $data['id'] . '/');
+		header('Location: /news/' . $data['id'] . '/');
 	}
 
 	/**
-	 * dataKeyReads()
-	 * Defines the data keys this controller reads from.
+	 * News::dataKeyReads()
+	 * Defines an array of the data keys a controller reads from.
 	 *
-	 * @return void
+	 * @return array Array of data keys a controller reads from.
 	 */
 	public static function dataKeyReads()
 	{
@@ -124,12 +123,9 @@ class News implements \Evil\Core\ControllerCacheable
 	}
 
 	/**
-	 * dataKeyInvalidates()
-	 * Defines the data key to cache key relation.
+	 * News::dataKeyInvalidats()
+	 * Defines the cache entries a certain key and payload invalidates.
 	 *
-	 * @param string $key The key that is being invalidated.
-	 * @param string $payload An optional payload associated with the key which
-	 * may help identify the proper cache key(s) to invalidate.
 	 * @return array The cache keys to invalidate.
 	 */
 	public static function dataKeyInvalidates($key, $payload)

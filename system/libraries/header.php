@@ -58,51 +58,53 @@ class Header
 	protected $status_keywords = array
 	(
 		'moved permanently' => 301,
-		'moved'            => 401,
-		'forbidden'        => 403,
-		'not found'        => 404,
-		'unavailable'      => 503
+		'moved'             => 302,
+		'forbidden'         => 403,
+		'not found'         => 404,
+		'unavailable'       => 503
 	);
 
 	/**
-	 * Header::__construct()
+	 * Header::status()
+	 * Wrapper for statusHeader()
 	 *
-	 * @return Header returns itself.
+	 * @param $headers int|string Status code in either numeric code or text description format.
+	 * @return bool
 	 */
-	public function __construct()
+	public function status($header)
 	{
-		return $this;
+		$this->statusHeader($header);
+	}
+
+	/**
+	 * Header::custom()
+	 * Wrapper for customHeader()
+	 *
+	 * @param int $status Numeric status code to send.
+	 * @param string $message Message to send in header.
+	 * @return bool
+	 */
+	public function custom($status, $message)
+	{
+		$this->customHeader($status, $message);
 	}
 
 	/**
 	 * Header::statusHeader()
 	 * Set a status header.
 	 *
-	 * @param $headers int|string Status code in either numeric code or text description format.
+	 * @param int|string $headers Status code in either numeric code or text description format.
 	 * @return bool
 	 */
-	public function statusHeader($headers)
+	public function statusHeader($header)
 	{
 		if ( headers_sent() )
-			return false;
+			throw new HeaderException('Cannot send header: Headers already sent.');
 
-		if ( !is_array($headers) )
-		{
-			if ( is_numeric($headers) )
-				$this->statusNumeric($headers);
-			else
-				$this->statusString($headers);
-		}
+		if ( is_numeric($headers) )
+			$this->statusNumeric($headers);
 		else
-		{
-			foreach($headers as $header)
-			{
-				if ( is_numeric($header) )
-					$this->statusNumeric($header);
-				else
-					$this->statusString($header);
-			}
-		}
+			$this->statusString($headers);
 
 		return true;
 	}
@@ -111,13 +113,14 @@ class Header
 	 * Header::customHeader()
 	 * Set a non-standard status header.
 	 *
-	 * @param $headers string Compelte status code and message.
+	 * @param int $status Numeric status code to send.
+	 * @param string $message Message to send in header.
 	 * @return bool
 	 */
 	public function customHeader($status, $message)
 	{
 		if ( headers_sent() )
-			return false;
+			throw new HeaderException('Cannot send header: Headers already sent.');
 
 		header('HTTP/1.1 ' . $status . ' ' . $message);
 
@@ -131,7 +134,7 @@ class Header
 	 * @param string $string The description of the status header.
 	 * @return void
 	 */
-	private function statusString($string)
+	protected function statusString($string)
 	{
 		$string = strtolower($string);
 
@@ -149,7 +152,7 @@ class Header
 	 * @param int $number The status code of the status header.
 	 * @return void
 	 */
-	private function statusNumeric($number)
+	protected function statusNumeric($number)
 	{
 		if ( !empty($this->status_headers[$number]) )
 			header($this->status_headers[$number]);
@@ -160,11 +163,10 @@ class Header
 	 * Do a redirect.
 	 *
 	 * @param string $url The URL to redirect to.
-	 * @param string $default The default URL to redirect to if no URL is given.
 	 * @param integer $mode The status header code to use in the redirect.
-	 * @return
+	 * @return void
 	 */
-	public function redirect($url = '', $default = '', $mode = 301)
+	public function redirect($url, $mode = 301)
 	{
 		if ( headers_sent() )
 			throw new HeaderException('Cannot redirect: Headers already sent.');
@@ -173,17 +175,6 @@ class Header
 			$mode = 301;
 
 		$this->statusHeader($mode);
-
-		// Figure out the URL to redirect to
-		if ( empty($url) )
-		{
-			if ( !empty($default) )
-				$url = $default;
-			elseif ( !empty($_SERVER['HTTP_REFERER']) )
-				$url = $_SERVER['HTTP_REFERER'];
-			else
-				$url = '/';
-		}
 
 		header('Location: ' . $url);
 	}
@@ -204,11 +195,10 @@ class HeaderException extends \Exception
 	 *
 	 * @param string $message
 	 * @param integer $code
-	 * @return
+	 * @return void
 	 */
 	public function __construct ($message = '', $code = 0)
 	{
-		//TODO: log this.
 		parent::__construct($message, $code);
 	}
 }

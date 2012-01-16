@@ -13,34 +13,49 @@ abstract class Controller
 	/**
 	 * Controller::__construct()
 	 *
-	 * @param string $module Module the class belongs to.
-	 * @param string $class Class to instantialize.
-	 * @param Arguments $arguments Arguments object.
-	 * @return
+	 * @param Config      $config      Object holding the configuration variables.
+	 * @param Application $application The bootstrapper class holding a few auto load methods.
+	 * @return void
 	 */
-	abstract public function __construct($class, Arguments $arguments, $initialize = null);
+	abstract public function __construct($config, $application = null);
+
+	/**
+	 * Controller::load()
+	 *
+	 * @param string    $class     Class to instantialize.
+	 * @param Arguments $arguments Arguments object.
+	 * @return void
+	 */
+	abstract public function load($class, Arguments $arguments);
 
 	/**
 	 * Controller::loadLibrary()
-	 * Factory for libraries.
+	 * Factory for libraries. Forces lazy loading.
 	 *
-	 * @param string|array $library string or an array of names of libraries to load.
-	 * @param mixed $arguments Arguments to pass to the library.
-	 * @param string $arguments Arguments to pass to the library.
+	 * @param string|array $library    Names of libraries to load.
+	 * @param mixed        $arguments  Arguments to pass to the library.
+	 * @param string       $identifier The identifier for the library.
 	 * @return Object Object of the specified library.
 	 */
-	abstract public function loadLibrary($library, $arguments = '', $identifier = '');
-
+	abstract public function loadLibrary($library, $arguments = null, $identifier = null);
 
 	/**
 	 * Controller::loadInclude()
 	 * Returns path to specified file from the include directory.
 	 *
 	 * @param string $include Name of file to include.
-	 * @example include $controller->loadInclude('Common');
 	 * @return void
 	 */
 	abstract public function loadInclude($include);
+
+	/**
+	 * Controller::autoLoadClasses()
+	 * Auto load undefined classes.
+	 *
+	 * @param string $class Name of class to load.
+	 * @return void
+	 */
+	abstract public function autoLoadClasses($class);
 
 	/**
 	 * Controller::redirect()
@@ -52,29 +67,11 @@ abstract class Controller
 	abstract public function redirect($number);
 
 	/**
-	 * Initialize::autoLoadLibrary()
-	 * Auto load undefined library classes.
-	 *
-	 * @param string $class Name of class to load.
-	 * @return void
-	 */
-	abstract public function autoLoadLibrary($class);
-
-	/**
-	 * Initialize::autoLoadController()
-	 * Auto load undefined controller classes.
-	 *
-	 * @param string $class Name of class to load.
-	 * @return void
-	 */
-	abstract public function autoLoadController($class);
-
-	/**
 	 * Controller::libraryExists()
-	 * Checks if the specified library exists.
+	 * Checks whether or not the specified library is present in the libraries dir.
 	 *
-	 * @param string $library Name of library to check for.
-	 * @return bool true if library exists, false otherwise
+	 * @param string Name of the library to check exists.
+	 * @return bool True if specified library exists, false otherwise
 	 */
 	abstract public function libraryExists($library);
 }

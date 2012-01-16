@@ -12,6 +12,11 @@ namespace Evil\Core;
  */
 class Arguments
 {
+	/**
+	 * Arguments sent to the class.
+	 *
+	 * @var array
+	 */
 	private $arguments;
 
 	/**
@@ -66,19 +71,33 @@ class Arguments
 	 * Arguments::get()
 	 * Fetches the argument with index $var or null.
 	 *
-	 * @param mixed $index Index to return.
+	 * @param mixed $index Index or indices of value(s) to return.
 	 * @return mixed Variable if found, otherwise null.
 	 */
 	public function get($index)
 	{
-		return (isset($this->arguments[$index])) ? $this->arguments[$index] : null;
+		if (is_null($index) || $index === '')
+			return null;
+
+		if ( !is_array($index) )
+			return isset($this->arguments[$index]) ? $this->arguments[$index] : null;
+
+		foreach($index as $key)
+		{
+			$value = isset($this->arguments[$key]) ? $this->arguments[$key] : null;
+			if ( !is_null($value) )
+				return $value;
+		}
+
+		return null;
 	}
 
 	/**
 	 * Arguments::slice()
 	 * Get a slice of the arguments from offset to index.
 	 *
-	 * @param mixed $index The index to cut off at.
+	 * @param mixed $offset The index to cut off at.
+	 * @param int   $length How many elements to include.
 	 * @return array of arguments limited by $index.
 	 */
 	public function slice($offset = 0, $length = null)
@@ -123,6 +142,8 @@ class Arguments
 	 * Arguments::insert()
 	 * Insert an element to the beginning/end of the array
 	 *
+	 * @param mixed $value     The value to insert.
+	 * @param bool  $beginning Whether or not to insert value at beginning. (or end)
 	 * @return void
 	 */
 	public function insert($value, $beginning = true)
@@ -134,13 +155,30 @@ class Arguments
 	}
 
 	/**
+	 * Arguments::set()
+	 * Insert an element as a key/value pair.
+	 *
+	 * @param string $key   Key to insert value under.
+	 * @param mixed  $value Value to insert.
+	 * @return void
+	 */
+	public function set($key, $value)
+	{
+		$this->arguments[$key] = $value;
+	}
+
+	/**
 	 * Arguments::assign()
 	 * Insert an element as a key/value pair.
-	 * @return
+	 *
+	 * @deprecated Use set()
+	 * @param string $key   Key to insert value under.
+	 * @param mixed  $value Value to insert.
+	 * @return void
 	 */
 	public function assign($key, $value)
 	{
-		$this->arguments[$key] = $value;
+		$this->set($key, $value);
 	}
 
 	/**
@@ -152,7 +190,7 @@ class Arguments
 	 */
 	public function __get($var)
 	{
-		return isset($this->arguments[$var]) ? $this->arguments[$var] : null;
+		return $this->get($var);
 	}
 
 	/**
@@ -175,15 +213,14 @@ class Arguments
 	 */
 	public function __toString()
 	{
-		// Same as var_dump($this->arguments); return '';
-		return (string)var_dump($this->arguments);
+		return var_export($this->arguments, true);
 	}
 
 	/**
 	 * Arguments::count()
-	 * returns number of arguments.
+	 * Returns number of arguments.
 	 *
-	 * @return int|bool false on empty array, otherwise count from 1.
+	 * @return int Number of arguments.
 	 */
 	public function count()
 	{

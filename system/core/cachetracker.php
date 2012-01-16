@@ -2,76 +2,61 @@
 namespace Evil\Core;
 
 /**
- * Controller Cachable
- * Interface to implement if the controller is cachable.
- */
-interface ControllerCacheable
-{
-	/**
-	 * ControllerCacheable::dataKeyWrites()
-	 * Defines the data keys a controller reads from.
-	 *
-	 * @return array Array of data keys a controller reads from.
-	 */
-	public static function dataKeyReads();
-
-	/**
-	 * ControllerCacheable::dataKeyWrites()
-	 * Defines the cache keys a data key generates.
-	 *
-	 * @return array Array of cache keys to invalidate.
-	 */
-	public static function dataKeyInvalidates($key, $payload);
-}
-
-/**
- * Library Cacheable
- * Optional interface for libaries to implement. Not currently in use.
- * Can help programmers determine which keys a library access.
- */
-interface LibraryCacheable
-{
-	/**
-	 * LibraryCacheable::dataKeyWrites()
-	 * Defines the data keys a library can write to.
-	 *
-	 * @return array Array of data keys a library can write to.
-	 */
-	public static function dataKeyWrites();
-}
-
-/**
  * Cache Tracker
  * Provide methods and interfaces which enable easier tracking of data changes.
  *
  * @package Evil Genius Framework
  * @author Martin Fjordvald
  * @copyright Evil Genius Media
- * @todo Streamline memcached access to avoid multiple points of entrace.
  */
 class CacheTracker
 {
 	/**
-	 * Whether to cache the page or not.
-	 * It's recommended to keep false while developing.
-	 * Can also be used to disable caching of specific pages which should
-	 * never be cached.
+	 * Path where controllers are stored.
+	 *
+	 * @var string
 	 */
-	private static $cache = false;
+	private $controller_path = 'system/controllers';
 
 	/**
-	 * String value prepended to all cache keys to avoid clashes with other
-	 * applications using same memcached store.
+	 * Memcached object.
+	 *
+	 * @var Memcached
 	 */
-	private static $namespace;
+	private $memcached;
 
 	/**
-	 * IP and port of memcached server to store pages in.
+	 * CacheTracker::__construct()
+	 *
+	 * @param Config $config Object holding the configuration variables.
+	 * @return void
 	 */
-	private static $server_ip;
-	private static $server_port;
+	public function __construct($config)
+	{
+		$this->setNamespace($config->cache_namespace);
+		$this->setServer($config->cache_server_ip, $config->cache_server_port);
+		$this->setCaching($config->cache_content);
+	}
 
-	private static $controller_path = 'system/controllers';
+	/**
+	 * CacheTracker::getMemcached()
+	 * Returns a memcached object.
+	 *
+	 * @return Memcached
+	 */
+	protected function getMemcached()
+	{
+		if ($this->memcached instanceof \Memcached)
+			return $this->memcached;
+
+		$this->memcached = new \Memcached();
+		$this->memcached->addServer($this->server_ip, $this->server_port);
+		$this->memcached->setOption(\Memcached::OPT_COMPRESSION, false);
+		$this->memcached->setOption(\Memcached::OPT_NO_BLOCK, true);
+		$this->memcached->setOption(\Memcached::OPT_TCP_NODELAY, true);
+
+		return $this->memcached;
+	}
 
 	/**
 	 * CacheTracker::getDataKeysAccessors()
@@ -80,21 +65,23 @@ class CacheTracker
 	 *
 	 * @return array Array of controllers defining data keys.
 	 */
-	public static function getDataKeysAccessors()
+	public function getDataKeysAccessors()
 	{
-		$directory = new \RecursiveDirectoryIterator(self::$controller_path);
+		$directory = new \RecursiveDirectoryIterator($this->controller_path);
 		$iterator  = new \RecursiveIteratorIterator($directory);
 
+		// Find all PHP controllers.
 		$controllers = array();
 		foreach($iterator as $controller)
 		{
 			if (substr($controller, -3) === 'php')
 			{
-				$controller    = str_replace(self::$controller_path, '', $controller);
+				$controller    = str_replace($this->controller_path, '', $controller);
 				$controllers[] = substr($controller, 0, -4);
 			}
 		}
 
+		// And get their data keys if they read any.
 		$keys = array();
 		foreach ($controllers as $controller)
 		{
@@ -120,17 +107,12 @@ class CacheTracker
 	 * @param array $invalidate [dataKey] => mixed $payload, [dataKey2] => mixed $payload, [..]
 	 * @return void
 	 */
-	public static function triggerDataKeyInvalidation($invalidate = array())
+	public function triggerDataKeyInvalidation($invalidate = array())
 	{
-		if (file_exists('deplist.txt'))
-		{
-			$accessors = json_decode(file_get_contents('deplist.txt'), true);
-		}
-		else
-		{
-			self::generateList();
-			$accessors = json_decode(file_get_contents('deplist.txt'), true);
-		}
+		if ( !file_exists('deplist.txt') )
+			$this->generateList();
+
+		$accessors = json_decode(file_get_contents('deplist.txt'), true);
 
 		if ( empty($accessors) )
 			return;
@@ -163,18 +145,14 @@ class CacheTracker
  			}
 		}
 
-		$m = new \Memcached();
-		$m->addServer(self::$server_ip, self::$server_port);
-		$m->setOption(\Memcached::OPT_NO_BLOCK, true);
-		$m->setOption(\Memcached::OPT_TCP_NODELAY, true);
+		$memcached = $this->getMemcached();
 
-		// TODO: Consider using a multi set for the keys with an expiration date in the past (or a second from now)
 		$keys = array_unique($keys);
-		foreach ($keys as $key)
+		foreach ($keys as $index => $key)
 		{
-			$template = self::$namespace . $key;
-			$m->delete($key);
+			$keys[$index] = $this->namespace . $key;
 		}
+		$memcached->deleteMulti($keys);
 	}
 
 	/**
@@ -183,9 +161,9 @@ class CacheTracker
 	 *
 	 * @return void
 	 */
-	public static function generateList()
+	public function generateList()
 	{
-		$accessors = json_encode(self::getDataKeysAccessors());
+		$accessors = json_encode($this->getDataKeysAccessors());
 		file_put_contents('deplist.txt', $accessors);
 	}
 
@@ -196,26 +174,21 @@ class CacheTracker
 	 * @param string $content The output content to cache.
 	 * @return void
 	 */
-	public static function storePage($content)
+	public function storePage($content)
 	{
-		if (!self::$cache || $_SERVER['REQUEST_METHOD'] !== 'GET')
+		if (!$this->cache_content || $_SERVER['REQUEST_METHOD'] !== 'GET')
 			return;
 
-		if ( empty(self::$namespace) )
+		if ( empty($this->namespace) )
 			throw new CoreException('No cache namespace is defined.');
 
-		if ( empty(self::$server_ip) || empty(self::$server_port) )
+		if ( empty($this->server_ip) || empty($this->server_port) )
 			throw new CoreException('No memcached server defined.');
 
-		$key = self::$namespace . $_SERVER['REQUEST_URI'];
+		$key = $this->namespace . $_SERVER['REQUEST_URI'];
 
-		$m = new \Memcached();
-		$m->addServer(self::$server_ip, self::$server_port);
-		$m->setOption(\Memcached::OPT_COMPRESSION, false);
-		$m->setOption(\Memcached::OPT_NO_BLOCK, true);
-		$m->setOption(\Memcached::OPT_TCP_NODELAY, true);
-
-		$m->set($key, $content);
+		$memcached = $this->getMemcached();
+		$memcached->set($key, $content);
 	}
 
 	/**
@@ -225,12 +198,12 @@ class CacheTracker
 	 * @param string $namespace The namespace value to prepend to all cache keys.
 	 * @return void
 	 */
-	public static function setNamespace($namespace)
+	public function setNamespace($namespace)
 	{
 		if ( empty($namespace) )
 			throw new CoreException('Trying to define invalid namespace.');
 
-		self::$namespace = $namespace;
+		$this->namespace = $namespace;
 	}
 
 	/**
@@ -240,23 +213,23 @@ class CacheTracker
 	 * @param bool $cache Whether to cache the page or not.
 	 * @return void
 	 */
-	public static function setCaching($cache)
+	public function setCaching($cache)
 	{
 		if ( !is_bool($cache) )
 			throw new CoreException('Invalid cache value, must be true or false.');
 
-		self::$cache = $cache;
+		$this->cache_content = $cache;
 	}
 
 	/**
 	 * CacheTracker::setServer()
 	 * Set whether to cache the page or not.
 	 *
-	 * @param integer $ip The IP of the memcached server.
+	 * @param integer $ip   The IP of the memcached server.
 	 * @param integer $port The port of the memcached server.
 	 * @return void
 	 */
-	public static function setServer($ip, $port)
+	public function setServer($ip, $port)
 	{
 		if ( !filter_var($ip, FILTER_VALIDATE_IP) )
 			throw new CoreException('Server IP is not a valid IP.');
@@ -264,7 +237,56 @@ class CacheTracker
 		if ( !is_integer($port) || $port < 1024 || $port > 65535  )
 			throw new CoreException('Server port is not a valid port.');
 
-		self::$server_ip   = $ip;
-		self::$server_port = $port;
+		$this->server_ip   = $ip;
+		$this->server_port = $port;
 	}
+}
+
+/**
+ * Controller Cachable
+ * Interface to implement if the controller is cachable.
+ *
+ * @package Evil Genius Framework
+ * @author Martin Fjordvald
+ * @copyright Evil Genius Media
+ */
+interface ControllerCacheable
+{
+	/**
+	 * ControllerCacheable::dataKeyReads()
+	 * Defines an array of the data keys a controller reads from.
+	 *
+	 * @return array Array of data keys a controller reads from.
+	 */
+	public static function dataKeyReads();
+
+	/**
+	 * ControllerCacheable::dataKeyInvalidats()
+	 * Defines the cache entries a certain key and payload invalidates.
+	 *
+	 * @param string $key     The key to determine which caches to invalidate.
+	 * @param string $payload Data useful to determine which caches to invalidate.
+	 * @return array The cache keys to invalidate.
+	 */
+	public static function dataKeyInvalidates($key, $payload);
+}
+
+/**
+ * Library Cacheable
+ * Optional interface for libaries to implement. Not currently in use.
+ * Can help programmers determine which keys a library access.
+ *
+ * @package Evil Genius Framework
+ * @author Martin Fjordvald
+ * @copyright Evil Genius Media
+ */
+interface LibraryCacheable
+{
+	/**
+	 * LibraryCacheable::dataKeyWrites()
+	 * Defines an array of the data keys a library can write to.
+	 *
+	 * @return array Array of data keys a library can write to.
+	 */
+	public static function dataKeyWrites();
 }
