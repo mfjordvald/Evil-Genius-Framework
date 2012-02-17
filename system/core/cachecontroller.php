@@ -36,10 +36,11 @@ class CacheController extends Controller
 	 * CacheController::__construct()
 	 *
 	 * @param Config      $config      Object holding the configuration variables.
+	 * @param string      $app_path    The application to use in paths.
 	 * @param Application $application The bootstrapper class holding a few auto load methods.
 	 * @return void
 	 */
-	public function __construct($config, $application = null)
+	public function __construct($config, $app_path, $application = null)
 	{
 		if ( !is_null($application) )
 			spl_autoload_unregister(array($application, 'autoLoadCore'));
@@ -49,7 +50,8 @@ class CacheController extends Controller
 		if ( !is_null($application) )
 			spl_autoload_register(array($application, 'autoLoadError'));
 
-		$this->config = $config;
+		$this->config      = $config;
+		$this->application = $app_path;
 	}
 
 	/**
@@ -66,6 +68,7 @@ class CacheController extends Controller
 
 		$this->cache_tracker = new CacheTracker($this->config);
 		$arguments->set('CacheTracker', $this->cache_tracker);
+		$arguments->set('Application', $this->application);
 
 		// Dashes in URI map to underscores in class and file name.
 		$class = ltrim(str_replace(array('-', '//'), array('_', '/'), $class), '/');
@@ -75,7 +78,7 @@ class CacheController extends Controller
 
 		$class = 'Evil\Controller\\' . str_replace('/', '\\', $class);
 
-		require 'system/controllers/' . $this->class . '.php';
+		require 'apps/' . $this->application . '/controllers/' . $this->class . '.php';
 
 		ob_start();
 		new $class($this, $arguments);
@@ -109,29 +112,50 @@ class CacheController extends Controller
 		if ( !is_array($library) )
 			$library = array($library);
 
+		if ( !is_array($arguments) )
+			$arguments = array($arguments);
+
 		if ( !isset($arguments['CacheTracker']) )
 			$arguments['CacheTracker'] = $this->cache_tracker;
 
-		$path = 'system/libraries/';
+		if ( !isset($arguments['Application']) )
+			$arguments['Application'] = $this->application;
+
+		$app_path    = 'apps/' . $this->application . '/libraries/';
+		$system_path = 'system/libraries/';
 
 		foreach($library as $lib)
 		{
 			$lib = strtolower($lib);
 
-			if ( file_exists($path . $lib . '.php') )
+			$found = false;
+			if ( file_exists($app_path . $lib . '.php') )
 			{
 				// Prevents double inclusion when loading multiple instances of same library.
 				if ( !class_exists('Evil\Library\\' . str_replace('/', '\\', $lib), false) )
-					require $path . $lib . '.php';
+					require $app_path . $lib . '.php';
 
-				$lib = 'Evil\Library\\' . str_replace('/', '\\', $lib);
-				$library = new $lib($this, new Arguments($arguments));
-
-				if ($cache)
-					$this->libraries[$identifier] = $library;
-
-				return $library;
+				$found = true;
 			}
+			elseif ( file_exists($system_path . $lib . '.php') )
+			{
+				// Prevents double inclusion when loading multiple instances of same library.
+				if ( !class_exists('Evil\Library\\' . str_replace('/', '\\', $lib), false) )
+					require $system_path . $lib . '.php';
+
+				$found = true;
+			}
+
+			if (!$found)
+				continue;
+
+			$lib = 'Evil\Library\\' . str_replace('/', '\\', $lib);
+			$library = new $lib($this, new Arguments($arguments));
+
+			if ($cache)
+				$this->libraries[$identifier] = $library;
+
+			return $library;
 		}
 
 		throw new CoreException('Failed to load library chain "' . implode(', ', $library) . '"');
@@ -146,7 +170,7 @@ class CacheController extends Controller
 	 */
 	public function loadInclude($include)
 	{
-		return 'system/includes/' . strtolower($include) . '.php';
+		return 'apps/' . $this->application . '/includes/' . strtolower($include) . '.php';
 	}
 
 	/**
@@ -168,17 +192,20 @@ class CacheController extends Controller
 		if ( empty($namespace[0]) )
 			array_shift($namespace);
 
-		$class     = strtolower(array_pop($namespace)); // Class name is alwaysthe last element.
+		$class     = strtolower(array_pop($namespace)); // Class name is always the last element.
 		$namespace = strtolower(implode('/', array_slice($namespace, 2))); // First two elements aren't used for path.
 
 		if ( !empty($namespace) )
 			$namespace .= '/';
 
-		$libraries_path   = 'system/libraries/' . $namespace;
-		$controllers_path = 'system/controllers/' . $namespace;
+		$libraries_app_path    = 'apps/' . $this->application . '/libraries/' . $namespace;
+		$libraries_system_path = 'system/libraries/' . $namespace;
+		$controllers_path      = 'system/controllers/' . $namespace;
 
-		if ( file_exists($libraries_path . $class . '.php') )
-			include $libraries_path . $class . '.php';
+		if ( file_exists($libraries_app_path . $class . '.php') )
+			include $libraries_app_path . $class . '.php';
+		elseif ( file_exists($libraries_system_path . $class . '.php') )
+			include $libraries_system_path . $class . '.php';
 		elseif ( file_exists($controllers_path . $class . '.php') )
 			include $controllers_path . $class . '.php';
 	}
@@ -220,6 +247,7 @@ class CacheController extends Controller
 	 */
 	public function libraryExists($lib)
 	{
-		return file_exists('system/libraries/' . strtolower($lib) . '.php');
+		return file_exists('apps/' . $this->application . 'libraries/' . strtolower($lib) . '.php') ||
+		       file_exists('system/libraries/' . strtolower($lib) . '.php');
 	}
 }

@@ -25,7 +25,7 @@ class Template
 		if ( empty($template) || !is_string($template) )
 			$template = 'default';
 
-		$this->setTemplate($template);
+		$this->setTemplate($template, $arguments->get('Application'));
 	}
 
 	/**
@@ -45,18 +45,19 @@ class Template
 	 * Sets the current working template directory.
 	 *
 	 * @param string $template The current working template directory.
+	 * @param string $app_path The application loaded.
 	 * @return void
 	 */
-	public function setTemplate($template)
+	public function setTemplate($template, $app_path)
 	{
 		if ( strpos($template, '../') )
 			throw new TemplateException('Bad template name. May not contain "../"');
 
-		if ( !file_exists('system/views/' . $template . '/') )
+		if ( !file_exists('apps/' . $app_path . '/views/' . $template . '/') )
 			throw new TemplateException('Missing template directory, please ensure the template exists.');
 
 		// We have the template, set a few paths.
-		$this->template_path = 'system/views/' . $template . '/';
+		$this->template_path = 'apps/' . $app_path . '/views/' . $template . '/';
 		$this->media_path    = '/' . $this->template_path . 'media/';
 		$this->image_path    = '/' . $this->template_path . 'media/images/';
 		$this->style_path    = '/' . $this->template_path . 'media/styles/';

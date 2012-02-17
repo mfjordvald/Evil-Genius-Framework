@@ -17,12 +17,13 @@ class ProfileController extends CacheController
 	 * ProfileController::__construct()
 	 *
 	 * @param Config      $config      Object holding the configuration variables.
+	 * @param string      $app_path    The application to use in paths.
 	 * @param Application $application The bootstrapper class holding a few auto load methods.
 	 * @return void
 	 */
-	public function __construct($config, $application = null)
+	public function __construct($config, $app_path, $application = null)
 	{
-		parent::__construct($config, $application);
+		parent::__construct($config, $app_path, $application);
 	}
 
 	/**
@@ -39,6 +40,7 @@ class ProfileController extends CacheController
 
 		$this->cache_tracker = new CacheTracker();
 		$arguments->set('CacheTracker', $this->cache_tracker);
+		$arguments->set('Application', $this->application);
 
 		// Convert dashes in class name to underscores.
 		$class = ltrim(str_replace(array('-', '//'), array('_', '/'), $class), '/');
@@ -48,7 +50,7 @@ class ProfileController extends CacheController
 
 		$class = 'Evil\Controller\\' . str_replace('/', '\\', $class);
 
-		include 'system/controllers/' . $this->class . '.php';
+		require 'apps/' . $this->application . '/controllers/' . $this->class . '.php';
 
 		ob_start();
 		new $class($this, $arguments);
@@ -95,30 +97,50 @@ class ProfileController extends CacheController
 		if ( !is_array($library) )
 			$library = array($library);
 
+		if ( !is_array($arguments) )
+			$arguments = array($arguments);
+
 		if ( !isset($arguments['CacheTracker']) )
 			$arguments['CacheTracker'] = $this->cache_tracker;
 
-		$path = 'system/libraries/';
+		if ( !isset($arguments['Application']) )
+			$arguments['Application'] = $this->application;
+
+		$app_path    = 'apps/' . $this->application . '/libraries/';
+		$system_path = 'system/libraries/';
 
 		foreach($library as $lib)
 		{
 			$lib = strtolower($lib);
 
-			if ( file_exists($path . $lib . '.php') )
+			$found = false;
+			if ( file_exists($app_path . $lib . '.php') )
 			{
 				// Prevents double inclusion when loading multiple instances of same library.
 				if ( !class_exists('Evil\Library\\' . str_replace('/', '\\', $lib), false) )
-					require $path . $lib . '.php';
+					require $app_path . $lib . '.php';
 
-				$lib = 'Evil\Library\\' . str_replace('/', '\\', $lib);
-
-				$library = new LibraryWrapper($this, new Arguments($arguments), $lib);
-
-				if ($cache)
-					$this->libraries[$identifier] = $library;
-
-				return $library;
+				$found = true;
 			}
+			elseif ( file_exists($system_path . $lib . '.php') )
+			{
+				// Prevents double inclusion when loading multiple instances of same library.
+				if ( !class_exists('Evil\Library\\' . str_replace('/', '\\', $lib), false) )
+					require $system_path . $lib . '.php';
+
+				$found = true;
+			}
+
+			if (!$found)
+				continue;
+
+			$lib = 'Evil\Library\\' . str_replace('/', '\\', $lib);
+			$library = new LibraryWrapper($this, new Arguments($arguments), $lib);
+
+			if ($cache)
+				$this->libraries[$identifier] = $library;
+
+			return $library;
 		}
 
 		throw new CoreException('Failed to load library chain "' . implode(', ', $library) . '"');
