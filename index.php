@@ -41,11 +41,37 @@ class Application
 		$route = $this->getRoute();
 		$route = $this->cleanRoute($route);
 
-		$router = new Router($route, $this->config->user404, $this->config->cache_route);
+		$application = $this->getApplication();
+
+		$router = new Router($route, $application, $this->config->user404, $this->config->cache_route);
 		$class  = $router->getController();
 
-		$controller = new $this->config->loader($this->config, $this);
+		$controller = new $this->config->loader($this->config, $application, $this);
 		$controller->load($class[0], $class[1]);
+	}
+
+	/**
+	 * Application::getApplication()
+	 * Analyse the request and figure out the app to load.
+	 *
+	 * @return string Application to load.
+	 */
+	protected function getApplication()
+	{
+		$application = strtolower($_SERVER['HTTP_HOST']);
+
+		if ( empty($application) )
+			throw new CoreException('Server does not support multi-app setup, please configure it to pass HOST header to PHP.');
+
+		list($application) = explode(':', $application);
+
+		if (stripos($application, '../') !== false)
+			throw new CoreException('Upper directory travesal not allowed.');
+
+		if ( !is_dir('apps/' . $application) )
+			throw new CoreException('Application directory does not exist.');
+
+		return $application;
 	}
 
 	/**
@@ -104,7 +130,7 @@ class Application
 		$this->writeLog($exception->getMessage(), $exception->getFile(), $exception->getLine());
 		echo '<h1>An exceptional error occured, this has been logged and will be fixed soon, sorry for the inconvenience.</h1>';
 
-		if ($this->development)
+		if ($this->config->development)
 			echo $exception->getMessage();
 	}
 
