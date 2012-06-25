@@ -73,7 +73,7 @@ class Router
 			list($file) = array_slice($route, $key);
 
 			// If a file part is found then remove that from our path.
-			$path = !empty($file) ? str_replace($file, '', $path): '';
+			$path = !empty($file) ? rtrim($path, $file) : '';
 
 			$path = strtolower($path);
 			$file = str_replace('-', '_', strtolower($file)); // - in the URI maps to _ in filename.
