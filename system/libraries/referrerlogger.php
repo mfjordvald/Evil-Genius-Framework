@@ -1,5 +1,5 @@
 <?php
-namespace Evil\Library;
+namespace Evil\Libraries;
 
 /**
  * ReferrerLogger
@@ -41,15 +41,11 @@ class ReferrerLogger
 	 * RefererLogger::__construct()
 	 *
 	 * @param Controller $controller The framework controller.
-	 * @param Arguments $arguments The framework arguments object.
 	 * @return void
 	 */
-	public function __construct($controller, $arguments)
+	public function __construct($controller)
 	{
-		$this->sql = $arguments->get( array('Database', 0) );
-
-		if ( !($this->sql instanceof \Evil\Library\SQL) )
-			$this->sql = $controller->loadLibrary('Database');
+		$this->database = $controller->loadLibrary('Database');
 	}
 
 	/**
@@ -67,11 +63,11 @@ class ReferrerLogger
 			return false;
 
 		$statement = '
-		INSERT IGNORE INTO `' . $this->sql->prefix . $this->table_name . '`
-			(`date`, `url`) VALUES(NOW(), "' . $this->sql->escape($referrer) . '")
+		INSERT IGNORE INTO `' . $this->database->prefix . $this->table_name . '`
+			(`date`, `url`) VALUES(NOW(), "' . $this->database->escape($referrer) . '")
 		ON DUPLICATE KEY UPDATE `times` = `times` + 1';
 
-		$this->sql->execute($statement);
+		$this->database->execute($statement);
 		return true;
 	}
 
@@ -122,7 +118,10 @@ class ReferrerLogger
 	{
 		foreach($excludes as $site)
 		{
-			return strpos($host, $site) !== false;
+			if (strpos($host, $site) !== false)
+				return true;
 		}
+
+		return false;
 	}
 }

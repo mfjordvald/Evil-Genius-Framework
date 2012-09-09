@@ -1,5 +1,5 @@
 <?php
-namespace Evil\Library\SQL;
+namespace Evil\Libraries\SQL;
 
 /**
  * MySQLimproved
@@ -17,24 +17,23 @@ class MySQLimproved extends SQL
   	private $affected_rows;
 
   	/**
-  	 * MyMySQLimproved::__construct()
+  	 * MySQLimproved::__construct()
   	 *
-  	 * @param Controller $controller The base controller.
-  	 * @param Arguments $arguments An Arguments objecting holding configuration settings.
+  	 * @param string $host     The host IP or name.
+  	 * @param string $database The database to operate on.
+  	 * @param string $username The database username
+  	 * @param string $password The database password.
   	 * @return void
   	 */
-  	public function __construct($controller, $arguments)
+  	public function __construct($host, $database, $username, $password, $debug = false)
   	{
-		if ( !$arguments->minimum(4) )
-			throw new SQLException('Missing configuration information', 1);
+		if ( empty($host) || empty($database) || empty($username) || empty($password) )
+			throw new SQLException('The database configuration was incomplete, this is our problem, we\'ll get it fixed soon!');
 
-  		$host     = $arguments->get(0);
-  		$database = $arguments->get(1);
-  		$username = $arguments->get(2);
-  		$password = $arguments->get(3);
-  		$this->debug = $arguments->get(4);
-
-		$this->connect($host, $database, $username, $password);
+		$this->host     = $host;
+		$this->database = $database;
+		$this->username = $username;
+		$this->password = $password;
 	}
 
 	/**
@@ -69,6 +68,9 @@ class MySQLimproved extends SQL
 	 */
 	public function execute($statement)
 	{
+		if ( empty($this->instance) )
+			$this->connect($this->host, $this->database, $this->username, $this->password);
+
   		if ( !$this->result = $this->instance->query($statement) )
 		{
 			throw new SQLException('Error in completing your request: <strong>' . $statement . "</strong>\n" .

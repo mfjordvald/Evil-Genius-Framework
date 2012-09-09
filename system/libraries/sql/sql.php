@@ -1,5 +1,5 @@
 <?php
-namespace Evil\Library\SQL;
+namespace Evil\Libraries\SQL;
 
 /**
  * SQL

@@ -1,5 +1,5 @@
 <?php
-namespace Evil\Library\SQL;
+namespace Evil\Libraries\SQL;
 
 /**
  * MySQL
@@ -16,20 +16,21 @@ class MySQL extends SQL
 	/**
 	 * MySQL::__construct()
 	 *
-	 * @param Controller $controller The base controller.
-	 * @param Arguments $arguments An Arguments objecting holding configuration settings.
-	 * @return void
-	 */
-	public function __construct($controller, $arguments)
-	{
-		if ( !$arguments->minimum(4) )
-			throw new SQLException('Missing configuration information');
+  	 * @param string $host     The host IP or name.
+  	 * @param string $database The database to operate on.
+  	 * @param string $username The database username
+  	 * @param string $password The database password.
+  	 * @return void
+  	 */
+  	public function __construct($host, $database, $username, $password)
+  	{
+		if ( empty($host) || empty($database) || empty($username) || empty($password) )
+			throw new SQLException('The database configuration was incomplete, this is our problem, we\'ll get it fixed soon!');
 
-  		$this->host     = $arguments->get(0);
-  		$this->database = $arguments->get(1);
-  		$this->username = $arguments->get(2);
-  		$this->password = $arguments->get(3);
-  		$this->debug    = $arguments->get(4);
+		$this->host     = $host;
+		$this->database = $database;
+		$this->username = $username;
+		$this->password = $password;
 	}
 
 	/**

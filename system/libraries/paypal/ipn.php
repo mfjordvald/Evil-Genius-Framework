@@ -1,5 +1,5 @@
 <?php
-namespace Evil\Library\PayPal;
+namespace Evil\Libraries\PayPal;
 
 /**
  * IPN
@@ -57,39 +57,27 @@ abstract class IPN
 	 * IPN::__construct()
 	 * Get class to minimum required working state.
 	 *
-	 * @param Controller $controller The framework controller.
-	 * @param Arguments $arguments The framework arguments object.
+	 * @param Validate $validate      Validate library.
+	 * @param string   $seller_email  The seller email.
+	 * @param string   $sandbox_email The sandbox seller email.
+	 * @param string   $verifier_url  The paypal verifier url.
+	 * @param string   $sandbox_url   The paypal sandbox verifier  url.
 	 * @return void
 	 */
-	public function __construct($controller, $arguments)
+	public function __construct(\Evil\Libraries\Validate $validate, $seller_email, $sandbox_email, $verifier_url = null, $sandbox_url = null)
 	{
 		if ( !function_exists('curl_init') )
 			$this->throwError('Curl Missing');
 
-		if ( !is_null($arguments->get('Validate')) )
-			$this->validate = $arguments->get('Validate');
-		else
-			$this->validate = $controller->loadLibrary('Validate');
+		$this->validate = $validate;
+		$this->settings['seller_email']  = strtolower($seller_email);
+		$this->settings['sandbox_email'] = strtolower($sandbox_email);
 
-		if ( !is_null($arguments->get('Seller Email')) )
-			$this->settings['seller_email'] = strtolower($arguments->get('Seller Email'));
-		elseif ( !is_null($arguments->get(0)) )
-			$this->settings['seller_email'] = strtolower($arguments->get(0));
+		if ( !is_null($verifier_url) )
+			$this->settings['verifier_url'] = strtolower($verifier_url);
 
-		if ( !is_null($arguments->get('Sandbox Email')) )
-			$this->settings['sandbox_email'] = strtolower($arguments->get('Sandbox Email'));
-		elseif ( !is_null($arguments->get(1)) )
-			$this->settings['sandbox_email'] = strtolower($arguments->get(1));
-
-		if ( !is_null($arguments->get('Verifier URL')) )
-			$this->settings['verifier_url'] = strtolower($arguments->get('Verifier URL'));
-		elseif ( !is_null($arguments->get(2)) )
-			$this->settings['verifier_url'] = strtolower($arguments->get(2));
-
-		if ( !is_null($arguments->get('Sandbox URL')) )
-			$this->settings['sandbox_url'] = strtolower($arguments->get('Sandbox URL'));
-		elseif ( !is_null($arguments->get(3)) )
-			$this->settings['sandbox_url'] = strtolower($arguments->get(3));
+		if ( !is_null($sandbox_url) )
+			$this->settings['sandbox_url']  = strtolower($sandbox_url);
 
 		$this->sandbox = !empty($_POST['test_ipn']);
 

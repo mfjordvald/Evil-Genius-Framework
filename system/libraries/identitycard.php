@@ -1,5 +1,5 @@
 <?php
-namespace Evil\Library;
+namespace Evil\Libraries;
 
 /**
  * IdentityCard
@@ -17,13 +17,12 @@ class IdentityCard
 	/**
 	 * IdentityCard::__construct()
 	 *
-	 * @param Controller $controller The framework controller.
-	 * @param Arguments $arguments The framework arguments object.
+	 * @param bool $require Require that the identity card exist.
 	 * @return void
 	 */
-	public function __construct($controller, $arguments)
+	public function __construct($require = false)
 	{
-		if ( $arguments->get(0) )
+		if ($require)
 			$this->checkExistance();
 	}
 

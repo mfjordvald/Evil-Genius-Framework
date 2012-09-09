@@ -1,5 +1,5 @@
 <?php
-namespace Evil\Library;
+namespace Evil\Libraries;
 
 /**
  * Settings
@@ -14,37 +14,25 @@ class Settings
 {
 	private $settings   = array();
 	private $table_name = 'settings';
+	private $cache      = false;
 
 	/**
 	 * Settings::__construct()
 	 *
-	 * @param Controller $controller The framework controller.
-	 * @param Arguments $arguments The framework arguments object.
+	 * @param SQL    $database   A SQL object.
+	 * @param string $table_name The name of the database table to store settings.
+	 * @param Cache  $cache      A Cache object.
 	 * @return void
 	 */
-	public function __construct($controller, $arguments)
+	public function __construct(\Evil\Libraries\SQL\SQL $database, $table_name = null, \Evil\Libraries\Cache\Cache $cache = null)
 	{
-		$table_name = $arguments->get( array('Table Name', 0) );
+		$this->database = $database;
+
+		if ( !empty($cache) )
+			$this->cache = $cache;
 
 		if ( !empty($table_name) && is_string($table_name) )
 			$this->table_name = $table_name;
-
-		$this->sql = $arguments->get( array('Database', 1) );
-
-		if ( !($this->sql instanceof \Evil\Library\SQL) )
-			$this->sql = $controller->loadLibrary('Database');
-
-		try {
-			$this->cache = $arguments->get( array('Cache', 2) );
-
-			if ( !($this->cache instanceof \Evil\Library\Cache\Cache) )
-				$this->cache = $controller->loadLibrary('Cache');
-
-		}
-		catch(\Evil\Core\CoreException $e)
-		{
-			$this->cache = false;
-		}
 
 		$this->settings = $this->readSettings();
 	}

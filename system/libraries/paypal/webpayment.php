@@ -16,13 +16,16 @@ class WebPayment extends IPN
 	 * WebPayment::__construct()
 	 * Get class to minimum required working state.
 	 *
-	 * @param Controller $controller The framework controller.
-	 * @param Arguments $arguments The framework arguments object.
+	 * @param Validate $validate      Validate library.
+	 * @param string   $seller_email  The seller email.
+	 * @param string   $sandbox_email The sandbox seller email.
+	 * @param string   $verifier_url  The paypal verifier url.
+	 * @param string   $sandbox_url   The paypal sandbox verifier  url.
 	 * @return void
 	 */
-	public function __construct($controller, $arguments)
+	public function __construct(\Evil\Libraries\Validate $validate, $seller_email, $sandbox_email, $verifier_url = null, $sandbox_url = null)
 	{
-		parent::__construct($controller, $arguments);
+		parent::__construct($validate, $seller_email, $sandbox_email, $verifier_url, $sandbox_url);
 	}
 
 	/**

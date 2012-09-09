@@ -1,5 +1,5 @@
 <?php
-namespace Evil\Library;
+namespace Evil\Libraries;
 
 /**
  * Session
@@ -22,11 +22,10 @@ class Session
 	 * Session::__construct()
 	 * Initalizes session and updates fingerprint.
 	 *
-	 * @param Controller $controller The framework controller.
-	 * @param Arguments $arguments The framework arguments object.
+	 * @param string $token A secret token to use when generating the user fingerprint.
 	 * @return void
 	 */
-	public function __construct($controller, $arguments)
+	public function __construct($token = null)
 	{
 		session_start();
 
@@ -36,8 +35,6 @@ class Session
 	    	$this->regenerate();
 	    	$this->data['initiated'] = true;
 		}
-
-		$token = $arguments->get( array('Token', 0) );
 
 		if ( !empty($token) && is_string($token) )
 			$this->token = $token;

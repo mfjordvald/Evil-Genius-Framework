@@ -1,5 +1,5 @@
 <?php
-namespace Evil\Library;
+namespace Evil\Libraries;
 
 /**
  * Language
@@ -15,16 +15,12 @@ class Language
 	/**
 	 * Language::__construct()
 	 *
-	 * @param Controller $controller The framework controller.
-	 * @param Arguments $arguments The framework arguments object.
+	 * @param string $language The language to load.
 	 * @return void
 	 */
-	public function __construct($controller, $arguments)
+	public function __construct($language)
 	{
-		if ( !$arguments->maximum(1) )
-			return false;
-
-		$this->setLocale($arguments->get(0));
+		$this->setLocale($language);
 	}
 
 	/**

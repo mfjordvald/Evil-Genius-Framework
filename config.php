@@ -12,7 +12,7 @@ namespace Evil\Core;
 class Config
 {
 	/**
-	 * When set to false any path that only match the root index.php controller will result in a 404.
+	 * When set to false any non-empty path that only match the root index.php controller will result in a 404.
 	 * When set to true the request will instead be passed to the root index.php
 	 * controller, provided that it exists.
 	 *

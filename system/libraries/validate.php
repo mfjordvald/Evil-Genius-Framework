@@ -1,5 +1,5 @@
 <?php
-namespace Evil\Library;
+namespace Evil\Libraries;
 
 /**
  * Validate
@@ -17,22 +17,37 @@ class Validate
 	 * Validate::__construct()
 	 * Loads required libraries.
 	 *
-	 * @param Controller $controller The framework controller.
-	 * @param Arguments $arguments The framework arguments object.
+	 * @param SQL    $database   A SQL object.
 	 * @return void
 	 */
-	public function __construct($controller, $arguments)
+	public function __construct(\Evil\Libraries\SQL\SQL $database = null)
 	{
-		try {
-			$this->sql = $arguments->get( array('Database', 0) );
+		$this->database = $database;
+	}
 
-			if ( !($this->sql instanceof \Evil\Library\SQL) )
-				$this->sql = $controller->loadLibrary('Database');
-		}
-		catch(\Evil\Core\CoreException $e)
+	/**
+	 * Validate::closure()
+	 * Uses a user defined method for validation.
+	 *
+	 * @param closure $function The method to execute.
+	 * @param string $data The data to validate.
+	 * @param string $message A custom message for the exception.
+	 * @return Validate $this Itself.
+	 */
+	public function closure($function, $data, $message)
+	{
+		if ( !empty($data) )
+			$this->data = $data;
+
+		if (!$function($this->data))
 		{
-			$this->sql = false;
+			if (!$message)
+				$message = 'The entered text did not match.';
+
+			throw new ValidationException($message);
 		}
+
+		return $this;
 	}
 
 	/**
@@ -56,6 +71,8 @@ class Validate
 
 			throw new ValidationException($message);
 		}
+
+		return $this;
 	}
 
 	/**
@@ -79,6 +96,8 @@ class Validate
 
 			throw new ValidationException($message);
 		}
+
+		return $this;
 	}
 
 
@@ -216,7 +235,7 @@ class Validate
 	 */
 	public function isUnique($column, $table, $data = '', $message = false)
 	{
-		if (!$this->sql)
+		if (!$this->database)
 			throw new ValidationException('Our database server appears to be down, please have patince while we fix this issue and sorry for the inconvenience.');
 
 		if ( !empty($data) )
@@ -226,12 +245,12 @@ class Validate
 		SELECT
 			1
 		FROM
-			`' . $this->sql->prefix . $table . '`
+			`' . $this->database->prefix . $table . '`
 		WHERE
-			`' . $column . '` = "' . $this->sql->escape($this->data) . '"
+			`' . $column . '` = "' . $this->database->escape($this->data) . '"
 		LIMIT 1';
 
-		list($valid) = $this->sql->fetch_numeric($stmt);
+		list($valid) = $this->database->fetch_numeric($stmt);
 
 		if ($valid)
 		{

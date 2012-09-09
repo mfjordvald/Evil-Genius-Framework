@@ -14,10 +14,11 @@ abstract class Controller
 	 * Controller::__construct()
 	 *
 	 * @param Config      $config      Object holding the configuration variables.
+	 * @param string      $app_path    The application to use in paths.
 	 * @param Application $application The bootstrapper class holding a few auto load methods.
 	 * @return void
 	 */
-	abstract public function __construct($config, $application = null);
+	abstract public function __construct($config, $app_path, $application = null);
 
 	/**
 	 * Controller::load()

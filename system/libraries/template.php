@@ -1,5 +1,5 @@
 <?php
-namespace Evil\Library;
+namespace Evil\Libraries;
 
 /**
  * Template
@@ -18,14 +18,12 @@ class Template
 	 * @param Arguments $arguments The framework arguments object.
 	 * @return void
 	 */
-	public function __construct($controller, $arguments)
+	public function __construct($template, $application_path)
 	{
-		$template = $arguments->get(array('Template', 0));
-
 		if ( empty($template) || !is_string($template) )
 			$template = 'default';
 
-		$this->setTemplate($template, $arguments->get('Application'));
+		$this->setTemplate($template, $application_path);
 	}
 
 	/**

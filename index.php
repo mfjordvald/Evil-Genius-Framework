@@ -24,6 +24,7 @@ class Application
 
 		set_exception_handler(array($this, 'handleException'));
 		spl_autoload_register(array($this, 'autoLoadCore'));
+		spl_autoload_register(array($this, 'autoLoadError'));
 
 		define('DS', DIRECTORY_SEPARATOR);
 

@@ -1,5 +1,5 @@
 <?php
-namespace Evil\Library;
+namespace Evil\Libraries;
 
 /**
  * UserTracker
@@ -21,25 +21,17 @@ class UserTracker
 	 * @param Arguments $arguments The framework arguments object.
 	 * @return void.
 	 */
-	public function __construct($controller, $arguments)
+	public function __construct(\Evil\Libraries\SQL\SQL $database, \Evil\Libraries\Session $session, $probability, $table_name = null)
 	{
-		$table_name = $arguments->get( array('Table Name', 1) );
+		$this->database = $database;
+		$this->session  = $session;
 
 		if ( !empty($table_name) && is_string($table_name) )
 			$this->table_name = $table_name;
 
-		$this->sql = $arguments->get( array('Database', 2) );
+		if ((int)$probability > 0)
+			$this->doRaffle($probability);
 
-		if ( !($this->sql instanceof \Evil\Library\SQL) )
-			$this->sql = $controller->loadLibrary('Database');
-
-		$this->session = $arguments->get( array('Session', 3) );
-
-		if ( !($this->session instanceof \Evil\Library\Session) )
-			$this->session = $controller->loadLibrary('Session');
-
-		if ((int)$arguments->get(0) > 0)
-			$this->doRaffle($arguments->get(0));
 	}
 
 	/**
@@ -54,7 +46,7 @@ class UserTracker
 		if ( isset($this->session->tracked) )
 			return $this->session->tracked;
 
-		if (mt_rand(0, (int)$tickets) === 0)
+		if (mt_rand(1, 100) < (int)$probability)
 			return $this->session->tracked = true;
 		else
 			return $this->session->tracked = false;
@@ -123,15 +115,15 @@ class UserTracker
 
 		$statement = '
 		INSERT INTO
-			`' . $this->sql->prefix . $this->table_name . '`
+			`' . $this->database->prefix . $this->table_name . '`
 			(`session`, `previous_page`, `current_page`)
 		VALUES(
-			'  . $this->sql->escape($this->session->tracker_id) . ',
-			"' . $this->sql->escape($info['previous_page']) . '",
-			"' . $this->sql->escape($info['current_page'])  . '"
+			'  . $this->database->escape($this->session->tracker_id) . ',
+			"' . $this->database->escape($info['previous_page']) . '",
+			"' . $this->database->escape($info['current_page'])  . '"
 		)';
 
-		$this->sql->execute($statement);
+		$this->database->execute($statement);
 	}
 
 	/**
