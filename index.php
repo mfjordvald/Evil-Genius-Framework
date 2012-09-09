@@ -114,7 +114,7 @@ class Application
 		$route = str_replace('/index.php', '', $route);
 		$route = trim($route, '/');
 		$route = preg_replace('/[\\:*<>|"]/', '', $route); // Invalid URL characters.
-		$route = preg_replace('#/\?.+$#', '', $route);     // Remove any query path.
+		$route = preg_replace('#\?.+$#', '', $route);      // Remove any query path.
 
 		return $route;
 	}
