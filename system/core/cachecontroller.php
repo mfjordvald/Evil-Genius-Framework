@@ -48,11 +48,11 @@ class CacheController
 		// Dashes in URI map to underscores in class and file name.
 		$class = ltrim(str_replace(array('-', '//'), array('_', '/'), $class), '/');
 
-		$class     = strtolower($class);
+		$class_path = strtolower($class);
 
-		$class = '\Evil\Controllers\\' . str_replace('/', '\\', $class);
+		$class = '\Evil\Controllers\\' . str_replace('/', '\\', $class_path);
 
-		require 'apps/' . $this->application . '/controllers/' . $class . '.php';
+		require 'apps/' . $this->application . '/controllers/' . $class_path . '.php';
 
 		ob_start();
 		new $class($cache_tracker, $this->application, $arguments);
