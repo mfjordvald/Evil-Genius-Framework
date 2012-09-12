@@ -1,5 +1,5 @@
 <?php
-namespace Evil\Library\CacheTest;
+namespace Evil\Libraries\CacheTest;
 
 /**
  * News
@@ -14,22 +14,14 @@ class News implements \Evil\Core\LibraryCacheable // Implements the optional int
 	/**
 	 * __construct()
 	 *
-	 * @param Controller $controller The base controller from which we handle framework calls.
-	 * @param Arguments $arguments Container for URI parts.
+	 * @param SQL          $database      A SQL object.
+	 * @param CacheTracker $cache_tracker A CacheTracker object.
 	 * @return void
 	 */
-	public function __construct($controller, $arguments)
+	public function __construct(\Evil\Libraries\SQL\SQL $database, \Evil\Core\CacheTracker $cache_tracker)
 	{
-		if ($arguments->get('Database') instanceof \Evil\Library\SQL\SQL)
-			$this->sql = $arguments->get('Database');
-		elseif ($arguments->get(0) instanceof \Evil\Library\SQL\SQL)
-			$this->sql = $arguments->get(0);
-		else
-			$this->sql = $controller->loadLibrary('Database');
-
-		$this->cache_tracker = $arguments->get('CacheTracker');
-		if ( !($this->cache_tracker instanceof \Evil\Core\CacheTracker) )
-			throw new \Exception('CacheTracker was not available in News library.');
+		$this->database = $database;
+		$this->cache_tracker = $cache_tracker;
 	}
 
 	/**
@@ -47,7 +39,7 @@ class News implements \Evil\Core\LibraryCacheable // Implements the optional int
 			`title`,
 			`content`
 		FROM
-			`' . $this->sql->prefix . 'news`';
+			`' . $this->database->prefix . 'news`';
 
 		if ( is_numeric($news_id) )
 		{
@@ -56,14 +48,14 @@ class News implements \Evil\Core\LibraryCacheable // Implements the optional int
 				`id` = ' . (int)$news_id . '
 			LIMIT 1';
 
-			return $this->sql->fetch_assoc($statement);
+			return $this->database->fetch_assoc($statement);
 		}
 		else
 		{
 			$statement .= '
 			LIMIT ' . (int)$limit;
 
-			return $this->sql->fetch_assoc_array($statement);
+			return $this->database->fetch_assoc_array($statement);
 		}
 	}
 
@@ -82,11 +74,11 @@ class News implements \Evil\Core\LibraryCacheable // Implements the optional int
 		SELECT
 			`content`
 		FROM
-			`' . $this->sql->prefix . 'comments`
+			`' . $this->database->prefix . 'comments`
 		WHERE
 			`parent` = ' . (int)$news_id;
 
-		return $this->sql->fetch_assoc_array($statement);
+		return $this->database->fetch_assoc_array($statement);
 	}
 
 	/**
@@ -100,14 +92,14 @@ class News implements \Evil\Core\LibraryCacheable // Implements the optional int
 	{
 		$statement = '
 		INSERT INTO
-			`' . $this->sql->prefix . 'news`
+			`' . $this->database->prefix . 'news`
 			(`title`, `content`)
 		VALUES(
-			"' . $this->sql->escape($title) . '",
-			"' . $this->sql->escape($content) . '"
+			"' . $this->database->escape($title) . '",
+			"' . $this->database->escape($content) . '"
 		)';
 
-		$this->sql->execute($statement);
+		$this->database->execute($statement);
 
 		$this->cache_tracker->triggerDataKeyInvalidation(array('news' => null));
 	}
@@ -123,14 +115,14 @@ class News implements \Evil\Core\LibraryCacheable // Implements the optional int
 	{
 		$statement = '
 		INSERT INTO
-			`' . $this->sql->prefix . 'comments`
+			`' . $this->database->prefix . 'comments`
 			(`parent`, `content`)
 		VALUES(
 			"' . (int)$news_id . '",
-			"' . $this->sql->escape($content) . '"
+			"' . $this->database->escape($content) . '"
 		)';
 
-		$this->sql->execute($statement);
+		$this->database->execute($statement);
 
 		$this->cache_tracker->triggerDataKeyInvalidation(array('comment' => $news_id));
 	}

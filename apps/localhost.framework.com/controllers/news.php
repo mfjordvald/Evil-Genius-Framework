@@ -1,5 +1,5 @@
 <?php
-namespace Evil\Controller;
+namespace Evil\Controllers;
 
 /**
  * News
@@ -12,18 +12,22 @@ namespace Evil\Controller;
  */
 class News implements \Evil\Core\ControllerCacheable
 {
+	use \Evil\Core\FrameworkCommons;
+
 	/**
 	 * __construct()
 	 *
-	 * @param Controller $controller The base controller from which we handle framework calls.
-	 * @param Arguments $arguments Container for URI parts.
+	 * @param CacheTracker $cache_tracker The cache tracker object.
+	 * @param string       $app_path      The application to use in paths.
+	 * @param Arguments    $arguments     Container for URI parts.
 	 * @return void
 	 */
-	public function __construct($controller, $arguments)
+	public function __construct($cache_tracker, $app_path, $arguments)
 	{
-		include $controller->loadInclude('Common');
+		include $this->loadInclude('Config', $app_path);
+		include $this->loadInclude('Common', $app_path);
 
-		$this->news = $controller->loadLibrary('CacheTest/News', array('Database' => $this->sql));
+		$this->news = new \Evil\Libraries\CacheTest\News($this->database, $cache_tracker);
 
 		if ( !empty($_POST) )
 		{
