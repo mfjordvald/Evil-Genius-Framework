@@ -28,11 +28,11 @@ class Config
 	public $development = true;
 
 	/**
-	 * The controller loader to use, currently CacheController and ProfileController exist.
+	 * True will enable profiling mode, false disables.
 	 *
-	 * @var string
+	 * @var bool
 	 */
-	public $loader      = 'Evil\Core\CacheController';
+	public $profile     = false;
 
 	/**
 	 * Will use the route cache file to find correct controller, rather than traverse the file system.

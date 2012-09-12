@@ -2,19 +2,21 @@
 namespace Evil\Core;
 
 /**
- * Profile Controller
+ * Profiling Dispatcher
  * Provides methods for profiling the application.
  *
  * !!! EXPERIMENTAL !!!
+ *
+ * THIS IS CURRENTLY SEVERELY OUTDATED.
  *
  * @package Evil Genius Framework
  * @author Martin Fjordvald
  * @copyright Evil Genius Media
  */
-class ProfileController extends CacheController
+class Profiler extends Dispatcher
 {
 	/**
-	 * ProfileController::__construct()
+	 * Profiler::__construct()
 	 *
 	 * @param Config      $config      Object holding the configuration variables.
 	 * @param string      $app_path    The application to use in paths.
@@ -27,7 +29,7 @@ class ProfileController extends CacheController
 	}
 
 	/**
-	 * ProfileController::load()
+	 * Profiler::load()
 	 *
 	 * @param string    $class     Class to instantialize.
 	 * @param Arguments $arguments Arguments object.
@@ -74,7 +76,7 @@ class ProfileController extends CacheController
 	}
 
 	/**
-	 * ProfileController::loadLibrary()
+	 * Profiler::loadLibrary()
 	 * Factory for libraries. Uses an optional registry for caching libraries.
 	 *
 	 * @param string|array $library    Names of libraries to load.
