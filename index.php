@@ -47,7 +47,7 @@ class Application
 		$router = new Router($route, $application, $this->config->user404, $this->config->cache_route);
 		$class  = $router->getController();
 
-		$controller = new $this->config->loader($this->config, $application, $this);
+		$controller = new Dispatcher($this->config, $application, $this);
 		$controller->load($class[0], $class[1]);
 	}
 
