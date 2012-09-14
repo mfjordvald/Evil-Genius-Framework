@@ -133,7 +133,7 @@ class Application
 	public function handleException($exception)
 	{
 		$this->writeLog($exception->getMessage(), $exception->getFile(), $exception->getLine());
-		echo '<h1>An exceptional error occured, this has been logged and will be fixed soon, sorry for the inconvenience.</h1>';
+		echo '<h1>An error occured, this has been logged and will be fixed soon, sorry for the inconvenience.</h1>';
 
 		if ($this->config->development)
 			echo $exception->getMessage();
