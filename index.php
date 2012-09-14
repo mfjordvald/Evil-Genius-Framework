@@ -56,30 +56,6 @@ class Application
 	}
 
 	/**
-	 * Application::getApplication()
-	 * Analyse the request and figure out the app to load.
-	 *
-	 * @return string Application to load.
-	 */
-	protected function getApplication()
-	{
-		$application = strtolower($_SERVER['HTTP_HOST']);
-
-		if ( empty($application) )
-			throw new CoreException('Server does not support multi-app setup, please configure it to pass HOST header to PHP.');
-
-		list($application) = explode(':', $application);
-
-		if (stripos($application, '../') !== false)
-			throw new CoreException('Upper directory travesal not allowed.');
-
-		if ( !is_dir('apps/' . $application) )
-			throw new CoreException('Application directory does not exist.');
-
-		return $application;
-	}
-
-	/**
 	 * Application::getRoute()
 	 * Analyse the URI and figure out the route to load.
 	 *
@@ -122,6 +98,30 @@ class Application
 		$route = preg_replace('#\?.+$#', '', $route);      // Remove any query path.
 
 		return $route;
+	}
+
+	/**
+	 * Application::getApplication()
+	 * Analyse the request and figure out the app to load.
+	 *
+	 * @return string Application to load.
+	 */
+	protected function getApplication()
+	{
+		$application = strtolower($_SERVER['HTTP_HOST']);
+
+		if ( empty($application) )
+			throw new CoreException('Server does not support multi-app setup, please configure it to pass HOST header to PHP.');
+
+		list($application) = explode(':', $application);
+
+		if (stripos($application, '../') !== false)
+			throw new CoreException('Upper directory travesal not allowed.');
+
+		if ( !is_dir('apps/' . $application) )
+			throw new CoreException('Application directory does not exist.');
+
+		return $application;
 	}
 
 	/**
