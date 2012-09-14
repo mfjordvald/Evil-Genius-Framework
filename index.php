@@ -23,6 +23,7 @@ class Application
 		header('Content-Type: text/html; charset=utf-8');
 
 		set_exception_handler(array($this, 'handleException'));
+
 		spl_autoload_register(array($this, 'autoLoadCore'));
 		spl_autoload_register(array($this, 'autoLoadError'));
 
@@ -32,7 +33,7 @@ class Application
 	}
 
 	/**
-	 * Application::initialize()
+	 * Application::run()
 	 * Configure and start our application.
 	 *
 	 * @return void
