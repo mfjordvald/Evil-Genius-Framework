@@ -115,7 +115,7 @@ class Application
 
 		list($application) = explode(':', $application);
 
-		if (stripos($application, '../') !== false)
+		if (stripos($application, '/../') !== false)
 			throw new CoreException('Upper directory travesal not allowed.');
 
 		if ( !is_dir('apps/' . $application) )
