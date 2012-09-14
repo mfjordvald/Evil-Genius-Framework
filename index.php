@@ -37,7 +37,7 @@ class Application
 	 *
 	 * @return void
 	 */
-	public function initialize()
+	public function run()
 	{
 		$route = $this->getRoute();
 		$route = $this->cleanRoute($route);
@@ -207,4 +207,4 @@ require 'config.php';
 $config = new Config();
 
 $application = new Application($config);
-$application->initialize($config);
+$application->run($config);
