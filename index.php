@@ -40,7 +40,17 @@ class Application
 	 */
 	public function run()
 	{
-		$route = $this->getRoute();
+		if ( $this->isCLIRequest() )
+		{
+			$this->checkCLIEnvironment();
+			$this->prepareCLIEnvironment();
+			$route = $this->getCLIRoute();
+		}
+		else
+		{
+			$route = $this->getWebRoute();
+		}
+
 		$route = $this->cleanRoute($route);
 
 		$application = $this->getApplication();
@@ -56,26 +66,46 @@ class Application
 		$dispatcher->load($class[0], $class[1]);
 	}
 
-	/**
-	 * Application::getRoute()
-	 * Analyse the URI and figure out the route to load.
-	 *
-	 * @return string Route to load.
-	 */
-	protected function getRoute()
+	private function isCLIRequest()
 	{
-		if ( !empty($_SERVER['REQUEST_URI']) ) // Web request.
-		{
-			$route = $_SERVER['REQUEST_URI'];
-		}
-		else // CLI request.
-		{
-			$root = dirname(array_shift($_SERVER['argv']));
-			chdir($root);
-			$route = '/' . implode('/', $_SERVER['argv']) . '/';
-		}
+		return empty($_SERVER['REQUEST_URI']);
+	}
 
-		return $route;
+	private function getWebRoute()
+	{
+		if ( empty($_SERVER['REQUEST_URI']) )
+			return false;
+
+		return $_SERVER['REQUEST_URI'];
+	}
+
+	private function getCLIRoute()
+	{
+		return $_SERVER['argv'][2];
+	}
+
+	private function checkCLIEnvironment()
+	{
+		if ($_SERVER['argc'] != 3)
+			die($this->outputCLIUsage());
+	}
+
+	private function prepareCLIEnvironment()
+	{
+		$root = dirname($_SERVER['argv'][0]);
+		chdir($root);
+	}
+
+	private function outputCLIUsage()
+	{
+		echo <<<'EOD'
+CLI Usage:
+php -f index.php application route
+Application is similar to the HOST header sent by a web browser.
+route is deliminated by a forward slash.
+Example:
+php -f index.php www.example.com /blog/2010/post-title/
+EOD;
 	}
 
 	/**
@@ -87,7 +117,7 @@ class Application
 	 */
 	protected function cleanRoute($route)
 	{
-		if (substr($route, 0, 7) === '/system')
+		if (substr($route, 0, 7) === '/system/')
 			throw new CoreException('System dir access forbidden.');
 
 		if (stripos($route, '/../') !== false)
@@ -109,10 +139,13 @@ class Application
 	 */
 	protected function getApplication()
 	{
-		$application = strtolower($_SERVER['HTTP_HOST']);
-
-		if ( empty($application) )
+		if ( empty($_SERVER['HTTP_HOST']) && empty($_SERVER['argv'][1]) )
 			throw new CoreException('Server does not support multi-app setup, please configure it to pass HOST header to PHP.');
+
+		if ( empty($_SERVER['HTTP_HOST']) )
+			$application = strtolower($_SERVER['argv'][1]);
+		else
+			$application = strtolower($_SERVER['HTTP_HOST']);
 
 		list($application) = explode(':', $application);
 
@@ -169,8 +202,7 @@ class Application
 		if (substr($class,0, 4) !== 'Evil')
 			return;
 
-		$this->writeLog('Failed to load required class ' . $class, $this->cleanRoute($this->getRoute()), 0);
-		die('Failed to load required class ' . $class);
+		throw new CoreException('Failed to load required class ' . $class);
 	}
 
     /**
@@ -183,7 +215,7 @@ class Application
      */
     private function writeLog($message, $file, $line)
     {
-		$entry = date('[Y-m-d]') . $line . ' :: ' . $file . ' | ' . $message . "\r\n";
+		$entry = date('[Y-m-d]') . ' :: Line ' . $line . ' :: ' . $file . ' :: ' . $message . "\r\n";
 		file_put_contents('./system/log.txt', $entry, FILE_APPEND);
 	}
 }
