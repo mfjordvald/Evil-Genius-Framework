@@ -31,7 +31,6 @@ class UserTracker
 
 		if ((int)$probability > 0)
 			$this->doRaffle($probability);
-
 	}
 
 	/**
