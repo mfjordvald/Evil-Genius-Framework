@@ -64,27 +64,20 @@ class Router
 		// Deepest point to top point is the reverse route.
 		$reverse = array_reverse($route, true);
 
-		foreach($reverse as $key => $part)
+		foreach($reverse as $key => $url_fragment)
 		{
-			$path = implode('/', $route);
-
-			// Since $key is from the reverse route and we pop elements this will remove
-			// the elements we have already tried, thus finding the new file to look for.
-			list($file) = array_slice($route, $key);
-
-			// If a file part is found then remove that from our path.
-			$path = !empty($file) ? rtrim($path, $file) : '';
-
-			$path = strtolower($path);
-			$file = str_replace('-', '_', strtolower($file)); // - in the URI maps to _ in filename.
-
-			if (file_exists('apps/' . $this->application . '/controllers/' . $path .  $file . '.php'))
-				return array($path . $file, new Arguments( array_slice($arguments, $key + 1) ));
-			elseif (file_exists('apps/' . $this->application . '/controllers/' . $path . $file . '/index.php'))
-				return array($path . $file . '/Index', new Arguments( array_slice($arguments, $key + 1) ));
-
-			// Remove the element which did not resolve in a file.
+			// Remove the url fragment we're trying now to get our path.
 			array_pop($route);
+			$path = strtolower(implode('/', $route));
+			$path = empty($path) ? $path : $path . '/';
+
+			// - in the URI maps to _ in filename.
+			$url_fragment = str_replace('-', '_', strtolower($url_fragment));
+
+			if (file_exists('apps/' . $this->application . '/controllers/' . $path .  $url_fragment . '.php'))
+				return array($path . $url_fragment, new Arguments( array_slice($arguments, $key + 1) ));
+			elseif (file_exists('apps/' . $this->application . '/controllers/' . $path . $url_fragment . '/index.php'))
+				return array($path . $url_fragment . '/Index', new Arguments( array_slice($arguments, $key + 1) ));
 		}
 
 		// Try index.php in root as a last resort.
@@ -156,10 +149,20 @@ class Router
 		{
 			$controllers = $this->getControllerPaths();
 			sort($controllers); // Want list to be alphabetical for index lookups.
-			file_put_contents('route_cache', json_encode($controllers));
+			$this->saveCachedPaths($controllers);
 		}
 
 		return json_decode(file_get_contents('route_cache'), true);
+	}
+
+	/**
+	 * Router::saveCachedPaths()
+	 *
+	 * @return void
+	 */
+	protected function saveCachedPaths($controllers)
+	{
+		file_put_contents('route_cache', json_encode($controllers));
 	}
 
 	/**
