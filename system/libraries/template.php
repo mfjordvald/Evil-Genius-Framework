@@ -14,8 +14,8 @@ class Template
 	/**
 	 * Template::__construct()
 	 *
-	 * @param Controller $controller The framework controller.
-	 * @param Arguments $arguments The framework arguments object.
+	 * @param string $template The template directory to use.
+	 * @param string $application_path The path to the application.
 	 * @return void
 	 */
 	public function __construct($template, $application_path)
