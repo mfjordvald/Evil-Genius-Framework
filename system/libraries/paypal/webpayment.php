@@ -1,5 +1,5 @@
 <?php
-namespace Evil\Library\PayPal;
+namespace Evil\Libraries\PayPal;
 
 /**
  * IPN - Web payment
