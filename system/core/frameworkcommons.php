@@ -18,9 +18,9 @@ trait FrameworkCommons
 	 * @param string $include Name of file to include.
 	 * @return void
 	 */
-	public function loadInclude($include, $application_path)
+	public function loadInclude($include)
 	{
-		return 'apps/' . $application_path . '/includes/' . strtolower($include) . '.php';
+		return 'app/includes/' . strtolower($include) . '.php';
 	}
 
 	/**
@@ -60,7 +60,7 @@ trait FrameworkCommons
 	 */
 	public function libraryExists($lib)
 	{
-		return file_exists('apps/' . $this->application . 'libraries/' . strtolower($lib) . '.php') ||
+		return file_exists('app/libraries/' . strtolower($lib) . '.php') ||
 		       file_exists('system/libraries/' . strtolower($lib) . '.php');
 	}
 }

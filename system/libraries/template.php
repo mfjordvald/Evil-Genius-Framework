@@ -15,15 +15,14 @@ class Template
 	 * Template::__construct()
 	 *
 	 * @param string $template The template directory to use.
-	 * @param string $application_path The path to the application.
 	 * @return void
 	 */
-	public function __construct($template, $application_path)
+	public function __construct($template)
 	{
 		if ( empty($template) || !is_string($template) )
 			$template = 'default';
 
-		$this->setTemplate($template, $application_path);
+		$this->setTemplate($template);
 	}
 
 	/**
@@ -43,19 +42,18 @@ class Template
 	 * Sets the current working template directory.
 	 *
 	 * @param string $template The current working template directory.
-	 * @param string $app_path The application loaded.
 	 * @return void
 	 */
-	public function setTemplate($template, $app_path)
+	public function setTemplate($template)
 	{
 		if ( strpos($template, '../') )
 			throw new TemplateException('Bad template name. May not contain "../"');
 
-		if ( !file_exists('apps/' . $app_path . '/views/' . $template . '/') )
+		if ( !file_exists('app/views/' . $template . '/') )
 			throw new TemplateException('Missing template directory, please ensure the template exists.');
 
 		// We have the template, set a few paths.
-		$this->template_path = 'apps/' . $app_path . '/views/' . $template . '/';
+		$this->template_path = 'app/views/' . $template . '/';
 		$this->media_path    = '/' . $this->template_path . 'media/';
 		$this->image_path    = '/' . $this->template_path . 'media/images/';
 		$this->style_path    = '/' . $this->template_path . 'media/styles/';

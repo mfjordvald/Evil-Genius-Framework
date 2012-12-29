@@ -53,15 +53,13 @@ class Application
 
 		$route = $this->cleanRoute($route);
 
-		$application = $this->getApplication();
-
-		$router = new Router($route, $application, $this->config->user404, $this->config->cache_route);
+		$router = new Router($route, $this->config->user404, $this->config->cache_route);
 		$class  = $router->getController();
 
 		if ($this->config->profile)
-			$dispatcher = new ProfileDispatcher($this->config, $application, $this);
+			$dispatcher = new ProfileDispatcher($this->config, $this);
 		else
-			$dispatcher = new Dispatcher($this->config, $application, $this);
+			$dispatcher = new Dispatcher($this->config, $this);
 
 		$dispatcher->load($class[0], $class[1]);
 	}
@@ -129,33 +127,6 @@ EOD;
 		$route = preg_replace('#\?.+$#', '', $route);      // Remove any query path.
 
 		return $route;
-	}
-
-	/**
-	 * Application::getApplication()
-	 * Analyse the request and figure out the app to load.
-	 *
-	 * @return string Application to load.
-	 */
-	protected function getApplication()
-	{
-		if ( empty($_SERVER['HTTP_HOST']) && empty($_SERVER['argv'][1]) )
-			throw new CoreException('Server does not support multi-app setup, please configure it to pass HOST header to PHP.');
-
-		if ( empty($_SERVER['HTTP_HOST']) )
-			$application = strtolower($_SERVER['argv'][1]);
-		else
-			$application = strtolower($_SERVER['HTTP_HOST']);
-
-		list($application) = explode(':', $application);
-
-		if (stripos($application, '/../') !== false)
-			throw new CoreException('Upper directory travesal not allowed.');
-
-		if ( !is_dir('apps/' . $application) )
-			throw new CoreException('Application directory does not exist.');
-
-		return $application;
 	}
 
 	/**

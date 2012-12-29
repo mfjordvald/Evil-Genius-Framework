@@ -19,13 +19,12 @@ class Profiler extends Dispatcher
 	 * Profiler::__construct()
 	 *
 	 * @param Config      $config      Object holding the configuration variables.
-	 * @param string      $app_path    The application to use in paths.
 	 * @param Application $application The bootstrapper class holding a few auto load methods.
 	 * @return void
 	 */
-	public function __construct($config, $app_path, $application = null)
+	public function __construct($config, $application = null)
 	{
-		parent::__construct($config, $app_path, $application);
+		parent::__construct($config, $application);
 	}
 
 	/**
@@ -42,7 +41,6 @@ class Profiler extends Dispatcher
 
 		$this->cache_tracker = new CacheTracker();
 		$arguments->set('CacheTracker', $this->cache_tracker);
-		$arguments->set('Application', $this->application);
 
 		// Convert dashes in class name to underscores.
 		$class = ltrim(str_replace(array('-', '//'), array('_', '/'), $class), '/');
@@ -52,7 +50,7 @@ class Profiler extends Dispatcher
 
 		$class = 'Evil\Controller\\' . str_replace('/', '\\', $class);
 
-		require 'apps/' . $this->application . '/controllers/' . $this->class . '.php';
+		require 'app/controllers/' . $this->class . '.php';
 
 		ob_start();
 		new $class($this, $arguments);
@@ -105,10 +103,7 @@ class Profiler extends Dispatcher
 		if ( !isset($arguments['CacheTracker']) )
 			$arguments['CacheTracker'] = $this->cache_tracker;
 
-		if ( !isset($arguments['Application']) )
-			$arguments['Application'] = $this->application;
-
-		$app_path    = 'apps/' . $this->application . '/libraries/';
+		$app_path    = 'app/libraries/';
 		$system_path = 'system/libraries/';
 
 		foreach($library as $lib)

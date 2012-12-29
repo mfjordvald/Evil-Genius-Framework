@@ -16,17 +16,15 @@ class Router
 	 * Configure our framework environment.
 	 *
 	 * @param string $route       The route to find a controller for.
-	 * @param string $app_path    The application to use in paths.
 	 * @param string $user_404    Whether to return 404 or let user controller handle it.
 	 * @param string $cache_route Whether or not to use cached routing file.
 	 * @return void
 	 */
-	public function __construct($route, $app_path, $user_404 = false, $cache_route = false)
+	public function __construct($route, $user_404 = false, $cache_route = false)
 	{
 		$this->route       = $route;
 		$this->user404     = $user_404;
 		$this->cache_route = $cache_route;
-		$this->application = $app_path;
 	}
 
 	/**
@@ -74,17 +72,17 @@ class Router
 			// - in the URI maps to _ in filename.
 			$url_fragment = str_replace('-', '_', strtolower($url_fragment));
 
-			if (file_exists('apps/' . $this->application . '/controllers/' . $path .  $url_fragment . '.php'))
+			if (file_exists('app/controllers/' . $path .  $url_fragment . '.php'))
 				return array($path . $url_fragment, new Arguments( array_slice($arguments, $key + 1) ));
-			elseif (file_exists('apps/' . $this->application . '/controllers/' . $path . $url_fragment . '/index.php'))
+			elseif (file_exists('app/controllers/' . $path . $url_fragment . '/index.php'))
 				return array($path . $url_fragment . '/Index', new Arguments( array_slice($arguments, $key + 1) ));
 		}
 
 		// Try index.php in root as a last resort.
 		// Empty route because otherwise we'd never have a 404, unless user wants to handle 404.
-		if (!$this->user404 && empty($arguments) && file_exists('apps/' . $this->application . '/controllers/index.php') )
+		if (!$this->user404 && empty($arguments) && file_exists('app/controllers/index.php') )
 			return array('Index', new Arguments($arguments));
-		elseif ($this->user404 && file_exists('apps/' . $this->application . '/controllers/index.php') )
+		elseif ($this->user404 && file_exists('app/controllers/index.php') )
 			return array('Index', new Arguments($arguments));
 		else
 		{
