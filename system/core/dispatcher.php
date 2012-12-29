@@ -25,7 +25,7 @@ class Dispatcher
 
 		spl_autoload_register(array($this, 'autoLoadClasses'), true, true);
 
-		$this->config      = $config;
+		$this->config = $config;
 	}
 
 	/**
@@ -40,21 +40,56 @@ class Dispatcher
 		require 'cachetracker.php';
 		$cache_tracker = new CacheTracker($this->config);
 
-		// Dashes in URI map to underscores in class and file name.
-		$class = ltrim(str_replace(array('-', '//'), array('_', '/'), $class), '/');
-
-		$class_path = strtolower($class);
-
-		$class = '\Evil\Controllers\\' . str_replace('/', '\\', $class_path);
+		$class_path = $this->getClassPath($class);
+		$class_name = $this->getClassName($class);
 
 		require 'app/controllers/' . $class_path . '.php';
 
 		ob_start();
-		new $class($cache_tracker, $arguments);
+		new $class_name($cache_tracker, $arguments);
 		$data = ob_get_clean();
 		echo $data;
 
 		$cache_tracker->storePage($data);
+	}
+
+	/**
+	 * Dispatcher::getClassPath()
+	 * Get file path for the class.
+	 *
+	 * @param string $class Requested URI to get class name for.
+	 * @return string The class name.
+	 */
+	protected function getClassPath($class)
+	{
+		return strtolower($this->sanitizeName($class));
+	}
+
+	/**
+	 * Dispatcher::getClassName()
+	 * Converts requested URI to class name.
+	 *
+	 * @param string $class Requested URI to convert to class name.
+	 * @return string The class name.
+	 */
+	protected function getClassName($class)
+	{
+		return '\Evil\Controllers\\' . str_replace('/', '\\', $this->sanitizeName($class));
+	}
+
+	/**
+	 * Dispatcher::sanitizeName()
+	 * Sanitizes requested class name to fit actual class name.
+	 *
+	 * @param string $class Class name to sanitize.
+	 * @return string The sanitized class name.
+	 */
+	protected function sanitizeName($class)
+	{
+		$search  = ['-', '//'];
+		$replace = ['_', '/'];
+
+		return ltrim(str_replace($search, $replace, $class), '/');
 	}
 
 	/**
@@ -70,24 +105,43 @@ class Dispatcher
 		if (substr($class,0, 4) !== 'Evil')
 			return;
 
+		$namespace  = $this->getNamespace($class);
+		$class_name = array_pop($namespace);
+		$class_path  = implode('/', $namespace);
+
+		if ( !empty($class_path) )
+			$class_path .= '/';
+
+		$app_path    = 'app/' . $class_path;
+		$system_path = 'system/' . $class_path;
+
+		if ( file_exists($app_path . $class_name . '.php') )
+			include $app_path . $class_name . '.php';
+		elseif ( file_exists($system_path . $class_name . '.php') )
+			include $system_path . $class_name . '.php';
+	}
+
+	/**
+	 * Dispatcher::getNamespace()
+	 * Gets the namespace from the full class name.
+	 *
+	 * @param string $class Full class name.
+	 * @return string The namespace.
+	 */
+	protected function getNamespace($class)
+	{
 		$namespace = explode('\\', $class);
 
 		// First element might be empty on Windows, not on Linux.
 		if ( empty($namespace[0]) )
 			array_shift($namespace);
 
-		$class     = strtolower(array_pop($namespace)); // Class name is always the last element.
-		$namespace = strtolower(implode('/', array_slice($namespace, 1))); // First element is not used for path.
+		array_shift($namespace);
 
-		if ( !empty($namespace) )
-			$namespace .= '/';
+		array_map(function($value) {
+			return strtolower($value);
+		}, $namespace);
 
-		$app_path    = 'app/' . $namespace;
-		$system_path = 'system/' . $namespace;
-
-		if ( file_exists($app_path . $class . '.php') )
-			include $app_path . $class . '.php';
-		elseif ( file_exists($system_path . $class . '.php') )
-			include $system_path . $class . '.php';
+		return $namespace;
 	}
 }
