@@ -16,7 +16,7 @@ class CacheTracker
 	 *
 	 * @var string
 	 */
-	private $controller_path = 'system/controllers';
+	private $controller_path = 'app/controllers';
 
 	/**
 	 * Memcached object.
