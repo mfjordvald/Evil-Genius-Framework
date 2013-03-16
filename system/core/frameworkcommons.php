@@ -2,8 +2,8 @@
 namespace Evil\Core;
 
 /**
- * Base Controller
- * Provides basic controller functions.
+ * FrameworkCommons
+ * Provides common framework functions.
  *
  * @package Evil Genius Framework
  * @author Martin Fjordvald
@@ -12,7 +12,7 @@ namespace Evil\Core;
 trait FrameworkCommons
 {
 	/**
-	 * BaseController::loadInclude()
+	 * FrameworkCommons::loadInclude()
 	 * Returns path to specified file from the include directory.
 	 *
 	 * @param string $include Name of file to include.
@@ -24,7 +24,7 @@ trait FrameworkCommons
 	}
 
 	/**
-	 * BaseController::redirect()
+	 * FrameworkCommons::redirect()
 	 * Redirect to the same file keeping only $number amount of arguments.
 	 *
 	 * @todo Method should find the absolute URL and construct header properly.
@@ -52,7 +52,7 @@ trait FrameworkCommons
 	}
 
 	/**
-	 * BaseController::libraryExists()
+	 * FrameworkCommons::libraryExists()
 	 * Checks whether or not the specified library is present in the libraries dir.
 	 *
 	 * @param string Name of the library to check exists.
