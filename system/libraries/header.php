@@ -101,10 +101,10 @@ class Header
 		if ( headers_sent() )
 			throw new HeaderException('Cannot send header: Headers already sent.');
 
-		if ( is_numeric($headers) )
-			$this->statusNumeric($headers);
+		if ( is_numeric($header) )
+			$this->statusNumeric($header);
 		else
-			$this->statusString($headers);
+			$this->statusString($header);
 
 		return true;
 	}
