@@ -177,6 +177,7 @@ class Header
 		$this->statusHeader($mode);
 
 		header('Location: ' . $url);
+		die();
 	}
 }
 
