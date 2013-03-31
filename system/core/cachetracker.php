@@ -85,8 +85,8 @@ class CacheTracker
 		$keys = array();
 		foreach ($controllers as $controller)
 		{
-			$controller = '\Evil\Controller' . str_replace('/', '\\', $controller);
-			if( method_exists($controller, 'dataKeyReads') )
+			$controller = '\Evil\Controllers' . str_replace('/', '\\', $controller);
+			if ( in_array('Evil\Core\ControllerCacheable', class_implements($controller)) )
 			{
 				$data = $controller::dataKeyReads();
 				foreach ($data as $dataKey)
