@@ -239,6 +239,28 @@ class LibraryWrapper
 	{
 		$this->library->$name = $value;
 	}
+
+	/**
+	 * LibraryWrapper::__isset()
+	 *
+	 * @param string $name Name of library class member to test.
+	 * @return void
+	 */
+	public function __isset($name)
+	{
+		return isset($this->library->$name);
+	}
+
+	/**
+	 * LibraryWrapper::__unset()
+	 *
+	 * @param string $name  Name of library class member to unset.
+	 * @return void
+	 */
+	public function __unset($name)
+	{
+		unset($this->library->$name);
+	}
 }
 
 /**
