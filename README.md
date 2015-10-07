@@ -1,6 +1,6 @@
 # About
 
-This framework is a proof-of-concept framework used in conjuction with Nginx full page caching. The idea is to be able to cache full pages without accepting stale data in the cache. To do this all data is tracked using framework-provided methods such that when data is updated the relevant cache keys are deleted and a new version can be fetched on next request.
+This framework is a proof-of-concept framework used in conjunction with Nginx full page caching. The idea is to be able to cache full pages without accepting stale data in the cache. To do this all data is tracked using framework-provided methods such that when data is updated the relevant cache keys are deleted and a new version can be fetched on next request.
 
 # Relevant files
 
